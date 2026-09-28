@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="電卓">
+<meta name="theme-color" content="#DDE1E5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161A1F" media="(prefers-color-scheme: dark)">
+<title>電卓</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DDE1E5; --panel:#EEF0F2; --key:#FAFBFC; --key-press:#E2E6EA;
+  --op:#23466B; --op-text:#FFFFFF; --op-press:#1A3552;
+  --eq:#F0A500; --eq-text:#1B1F24; --eq-press:#D38F00;
+  --fn:#C9CFD6; --fn-press:#B6BDC6; --sci:#E4E8EC; --sci-press:#D3D9DF;
+  --ink:#1B1F24; --muted:#66707C; --line:#C4CAD1; --err:#B3261E; --caret:#E08E00;
+  --num-font:"Barlow Semi Condensed","Barlow","Helvetica Neue",Arial,sans-serif;
+  --ui-font:"Barlow","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#161A1F; --panel:#1F242B; --key:#2A3038; --key-press:#353C46;
+    --op:#3D6FA3; --op-text:#FFFFFF; --op-press:#335E8C;
+    --eq:#F0A500; --eq-text:#161A1F; --eq-press:#D38F00;
+    --fn:#3A424C; --fn-press:#465059; --sci:#242A31; --sci-press:#2F363F;
+    --ink:#EDF0F3; --muted:#8C96A2; --line:#343B44; --err:#FF8A80; --caret:#F0A500;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161A1F; --panel:#1F242B; --key:#2A3038; --key-press:#353C46;
+  --op:#3D6FA3; --op-text:#FFFFFF; --op-press:#335E8C;
+  --eq:#F0A500; --eq-text:#161A1F; --eq-press:#D38F00;
+  --fn:#3A424C; --fn-press:#465059; --sci:#242A31; --sci-press:#2F363F;
+  --ink:#EDF0F3; --muted:#8C96A2; --line:#343B44; --err:#FF8A80; --caret:#F0A500;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--ui-font);
+  -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;
+  overscroll-behavior:none; touch-action:manipulation;
+}
+.app{height:100%; max-width:480px; margin:0 auto; display:flex; flex-direction:column}
+
+/* ---- 上部バー ---- */
+.bar{display:flex; justify-content:flex-end; align-items:center; padding:4px 10px 0}
+.bar .count{font-size:13px; color:var(--muted); padding-left:6px}
+.linkbtn{border:0; background:transparent; color:var(--muted); font:500 14px var(--ui-font); padding:10px 8px; border-radius:10px; cursor:pointer}
+.linkbtn{background:var(--fn); color:var(--ink); font-weight:600; padding:7px 14px; margin:4px 0; border-radius:999px; border:1px solid var(--line); box-shadow:0 1px 0 var(--line)}
+.linkbtn:active{background:var(--fn-press)}
+.modebar{display:flex; justify-content:flex-start; padding:0 10px 2px; flex:0 0 auto}
+
+/* ---- 履歴テープ（新しいものが下） ---- */
+.tape{flex:1 1 auto; min-height:60px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px}
+.tape-inner{min-height:100%; display:flex; flex-direction:column; justify-content:flex-end}
+.entry{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px solid var(--line); min-height:48px}
+.entry .ex{
+  flex:1 1 auto; min-width:0; text-align:left; white-space:nowrap; overflow-x:auto; scrollbar-width:none;
+  font:400 19px/1.6 var(--num-font); color:var(--muted);
+  cursor:pointer; padding:2px 4px; margin-left:-4px; border-radius:6px;
+}
+.entry .rs{
+  flex:0 0 auto; max-width:60%; overflow-x:auto; white-space:nowrap; scrollbar-width:none;
+  font:500 26px var(--num-font); font-variant-numeric:tabular-nums; text-align:right;
+  cursor:pointer; padding:0 6px; margin-right:-6px; border-radius:8px;
+}
+.entry .ex::-webkit-scrollbar,.entry .rs::-webkit-scrollbar{display:none}
+.entry .ex:active,.entry .rs:active{background:var(--panel)}
+.entry.flash .rs{background:var(--sci)}
+.hint{color:var(--muted); font-size:14px; line-height:1.7; text-align:center; padding:24px 8px}
+
+/* ---- 入力中の式 ---- */
+.current{flex:0 0 auto; padding:10px 16px 12px; border-top:2px solid var(--line); min-height:96px; display:flex; flex-direction:column; justify-content:flex-end}
+.input{
+  font:400 32px/1.25 var(--num-font); text-align:right; word-break:break-all;
+  min-height:40px; max-height:45vh; overflow-y:auto; padding-top:4px; cursor:text;
+}
+.input .t{display:inline}
+.input .t.op{padding:0 .12em}
+.input .t.word{color:var(--op)}
+.t.xv{font-family:"Times New Roman",Georgia,serif; font-style:italic; color:var(--op); padding:0 .04em}
+.t.eqs{padding:0 .28em; color:var(--ink); font-weight:500}
+.k.xkey{font:italic 500 24px "Times New Roman",Georgia,serif; color:var(--op)}
+.preview.hint{color:var(--muted); font:400 13px var(--ui-font)}
+.input .ghost{color:var(--muted); opacity:.55}
+.caret{display:inline-block; width:2px; height:1.05em; background:var(--caret); vertical-align:-0.15em; margin:0 -1px; animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.input{line-height:1.6}
+.frac{display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; font-size:.86em; margin:0 .12em; line-height:1.2}
+.frac .num{padding:0 .18em .04em; border-bottom:2px solid currentColor; min-width:.8em; text-align:center}
+.frac .den{padding:.04em .18em 0; min-width:.8em; text-align:center}
+.frac .divmark{display:inline-block; width:0}
+.pow{display:inline}
+.sup{display:inline-block; font-size:.62em; vertical-align:1.05em; line-height:1; margin-left:.04em}
+.sup .frac{font-size:.95em}
+.root{display:inline-flex; align-items:stretch; margin:0 .06em; vertical-align:bottom}
+.rsign{display:inline-block; line-height:1.25; padding-top:.02em; cursor:text; font-family:"Times New Roman",serif; transform:scaleY(1.08); transform-origin:bottom}
+.radicand{display:inline-block; border-top:2px solid currentColor; padding:.06em .14em 0 .06em; margin-left:-.02em; line-height:1.25}
+.entry .ex .radicand{border-top-width:1.5px}
+.mark{display:inline-block; width:0}
+.ph{display:inline-block; width:.6em; height:.8em; border:1.5px dashed var(--muted); border-radius:3px; vertical-align:middle; opacity:.75; cursor:text}
+.entry .ex .frac .num{border-bottom-width:1.5px}
+.preview{font:400 20px var(--num-font); color:var(--muted); text-align:right; min-height:26px}
+.preview.err{color:var(--err); font-family:var(--ui-font); font-size:14px}
+
+/* ---- キーパッド ---- */
+.pad{
+  flex:0 0 auto; display:grid; grid-template-columns:repeat(5,1fr); gap:7px;
+  background:var(--panel); padding:10px 10px 12px; border-radius:20px 20px 0 0;
+}
+.k{
+  touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+  height:54px; border:0; border-radius:12px; cursor:pointer;
+  font:400 27px var(--num-font); color:var(--ink); background:var(--key);
+  box-shadow:0 1px 0 var(--line); transition:transform .05s, background .05s;
+}
+.k:active,.k.hit{transform:translateY(1px); background:var(--key-press)}
+.k.tool{height:40px; background:var(--fn); font:500 16px var(--ui-font)}
+.k.tool:active,.k.tool.hit{background:var(--fn-press)}
+.k.sci{height:42px; background:var(--sci); font:500 18px var(--num-font)}
+.k.sci:active,.k.sci.hit{background:var(--sci-press)}
+.k.op{background:var(--op); color:var(--op-text); font-size:30px}
+.k.op:active,.k.op.hit{background:var(--op-press)}
+.k.eq{background:var(--eq); color:var(--eq-text); font-size:32px; font-weight:500; grid-column:span 2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; gap:3px; transition:background .15s, color .15s}
+.k.eq .sym{font:500 30px var(--num-font)}
+.k.eq .sym i{font-family:"Times New Roman",Georgia,serif; font-weight:500}
+.k.eq .cap{font:600 11px var(--ui-font); letter-spacing:.02em; opacity:.85}
+.k.eq.st-calc .cap,.k.eq.st-rhs .cap{display:none}
+.k.eq.st-rhs .sym{display:inline-flex; align-items:center; gap:6px; white-space:nowrap; line-height:1}
+.k.eq.st-rhs .e1{display:block; font:500 26px/1 var(--num-font); transform:translateY(1px)}
+.k.eq.st-rhs .e2{display:block; font:600 16px/1 var(--ui-font)}
+.k.eq.st-rhs{background:var(--op); color:var(--op-text)}
+.k.eq.st-rhs:active{background:var(--op-press)}
+.k.eq.st-solve{background:var(--eq); color:var(--eq-text); box-shadow:0 0 0 2px var(--op) inset}
+.k.eq:active,.k.eq.hit{background:var(--eq-press)}
+.k:focus-visible,.linkbtn:focus-visible{outline:3px solid var(--eq); outline-offset:2px}
+@media (max-height:700px){ .k{height:46px} .k.sci{height:36px} .k.tool{height:34px} .current{min-height:80px} .input{font-size:28px} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} .caret{animation:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar">
+    
+    <button class="linkbtn" id="clearHist">履歴を消去</button>
+  </div>
+
+  <div class="tape" id="tape"><div class="tape-inner" id="tapeInner"></div></div>
+
+  <div class="current">
+    <div class="input" id="input" aria-label="入力中の式"></div>
+    <div class="preview" id="preview" aria-live="polite"></div>
+  </div>
+
+  <div class="modebar"><button class="linkbtn" id="degBtn" aria-label="角度の単位を切り替える">DEG</button></div>
+
+  <div class="pad" id="pad">
+    <button class="k tool" data-k="AC" aria-label="入力を消す">AC</button>
+    <button class="k tool" data-k="LEFT" aria-label="カーソルを左へ">◀</button>
+    <button class="k tool" data-k="RIGHT" aria-label="カーソルを右へ">▶</button>
+    <button class="k tool" data-k="BS" aria-label="1つ消す" style="grid-column:span 2">⌫</button>
+
+    <button class="k sci" data-k="sin(">sin</button>
+    <button class="k sci" data-k="cos(">cos</button>
+    <button class="k sci" data-k="tan(">tan</button>
+    <button class="k sci" data-k="log(">log</button>
+    <button class="k sci" data-k="ln(">ln</button>
+
+    <button class="k sci" data-k="π">π</button>
+    <button class="k sci" data-k="^">xʸ</button>
+    <button class="k sci" data-k="√(">√</button>
+    <button class="k sci" data-k="ans">ans</button>
+    <button class="k sci xkey" data-k="X" aria-label="変数X">X</button>
+
+    <button class="k" data-k="7">7</button>
+    <button class="k" data-k="8">8</button>
+    <button class="k" data-k="9">9</button>
+    <button class="k" data-k="(">(</button>
+    <button class="k" data-k=")">)</button>
+
+    <button class="k" data-k="4">4</button>
+    <button class="k" data-k="5">5</button>
+    <button class="k" data-k="6">6</button>
+    <button class="k op" data-k="×" aria-label="掛ける">×</button>
+    <button class="k op" data-k="÷" aria-label="割る（分数）">/</button>
+
+    <button class="k" data-k="1">1</button>
+    <button class="k" data-k="2">2</button>
+    <button class="k" data-k="3">3</button>
+    <button class="k op" data-k="+" aria-label="足す">+</button>
+    <button class="k op" data-k="−" aria-label="引く">−</button>
+
+    <button class="k" data-k="0">0</button>
+    <button class="k" data-k=".">.</button>
+    <button class="k" data-k="%">%</button>
+    <button class="k eq st-calc" data-k="=" id="eqKey" aria-label="計算する"><span class="sym">=</span><span class="cap"></span></button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const FUNCS = {
+    'sin(': (x,d)=>trig(Math.sin,x,d),
+    'cos(': (x,d)=>trig(Math.cos,x,d),
+    'tan(': (x,d)=>{ const r=d?x*Math.PI/180:x; if(Math.abs(Math.cos(r))<1e-12) throw new Error('tan の値が定義されない角度です'); return snap(Math.tan(r)); },
+    '√(':  x=>{ if(x<0) throw new Error('負の数の √ は計算できません'); return Math.sqrt(x); },
+    'log(':x=>{ if(x<=0) throw new Error('log は正の数だけ計算できます'); return Math.log10(x); },
+    'ln(': x=>{ if(x<=0) throw new Error('ln は正の数だけ計算できます'); return Math.log(x); },
+  };
+  const OPS=['+','−','×','÷','^'];
+  const snap=v=>Math.round(v*1e14)/1e14;
+  function trig(f,x,d){ return snap(f(d?x*Math.PI/180:x)); }
+
+  // ---- 状態 ----
+  let S={ tokens:[], cursor:0, history:[], ans:0, deg:true };
+  try{
+    const saved=JSON.parse(localStorage.getItem('calc2-state')||'null');
+    if(saved){ S.history=saved.history||[]; S.ans=saved.ans||0; S.deg=saved.deg!==false; }
+  }catch(e){}
+  const save=()=>{ try{ localStorage.setItem('calc2-state', JSON.stringify({history:S.history.slice(-300), ans:S.ans, deg:S.deg})); }catch(e){} };
+
+  // ---- 式の評価（evalを使わない） ----
+  function openCount(tokens){ let n=0; for(const t of tokens){ if(t.endsWith('(')) n++; else if(t===')') n--; } return n; }
+  function toParse(tokens){
+    const out=[]; let buf='';
+    const flush=()=>{ if(!buf) return; if(buf==='.'||buf.split('.').length>2) throw new Error('数値の書き方が正しくありません'); out.push({n:parseFloat(buf)}); buf=''; };
+    for(const t of tokens){ if(/^[0-9.]$/.test(t)) buf+=t; else { flush(); if(t==='^('||t==='÷('){ out.push({o:t[0]},{o:'('}); } else out.push({o:t}); } }
+    flush(); return out;
+  }
+  function evaluate(tokens, ans, deg, xv){
+    const t=toParse(tokens); for(let i=openCount(tokens);i>0;i--) t.push({o:')'});
+    let p=0; const peek=()=>t[p], next=()=>t[p++];
+    const startsPrimary=tk=>tk && (tk.n!==undefined || tk.o==='(' || tk.o==='π' || tk.o==='ans' || tk.o==='X' || FUNCS[tk.o]);
+    function expr(){ let v=term(); while(peek()&&(peek().o==='+'||peek().o==='−')){ const o=next().o, r=term(); v=o==='+'?v+r:v-r; } return v; }
+    function term(){
+      let v=unary();
+      for(;;){
+        let o;
+        if(peek()&&(peek().o==='×'||peek().o==='÷')) o=next().o;
+        else if(startsPrimary(peek())) o='×';
+        else break;
+        const r=unary();
+        if(o==='÷'){ if(r===0) throw new Error('0 で割ることはできません'); v/=r; } else v*=r;
+      }
+      return v;
+    }
+    function unary(){ const tk=peek(); if(tk&&tk.o==='−'){next();return -unary();} if(tk&&tk.o==='+'){next();return unary();} return power(); }
+    function power(){ const b=postfix(); if(peek()&&peek().o==='^'){ next(); const e=unary(); const v=Math.pow(b,e); if(isNaN(v)) throw new Error('このべき乗は計算できません'); return v; } return b; }
+    function postfix(){ let v=primary(); while(peek()&&peek().o==='%'){ next(); v/=100; } return v; }
+    function primary(){
+      const tk=next();
+      if(!tk) throw new Error('式が途中で終わっています');
+      if(tk.n!==undefined) return tk.n;
+      if(tk.o==='π') return Math.PI;
+      if(tk.o==='ans') return ans;
+      if(tk.o==='X'){ if(xv===undefined) throw new Error('X を含む式は = で右辺を入力してください'); return xv; }
+      if(tk.o==='('){ const v=expr(); expect(); return v; }
+      if(FUNCS[tk.o]){ const a=expr(); expect(); return FUNCS[tk.o](a,deg); }
+      throw new Error('「'+tk.o+'」の位置が正しくありません');
+    }
+    function expect(){ const c=next(); if(!c||c.o!==')') throw new Error('かっこの対応が正しくありません'); }
+    if(!t.length) throw new Error('式が空です');
+    const v=expr();
+    if(p<t.length) throw new Error('「'+(t[p].o||t[p].n)+'」の位置が正しくありません');
+    if(!isFinite(v)) throw new Error('計算できる範囲を超えました');
+    return v;
+  }
+
+  // ---- 表示用 ----
+  // 結果表示：小数点以下3桁まで（4桁目を四捨五入、末尾の0は省略）
+  function fmt(v){
+    let r=parseFloat(v.toPrecision(12)); const a=Math.abs(r);
+    if(a>=1e15) return r.toExponential(3).replace(/\.?0+e/,'e').replace('e+','e').replace(/^-/,'−');
+    const sign=r<0?-1:1, orig=r;
+    r=sign*Number(Math.round(Number(a+'e3'))+'e-3');
+    const more = r!==orig;          // 小数4桁目以降が残っている
+    if(r===0) r=0;
+    const [i,d]=String(r).split('.'); const neg=i.startsWith('-')||(r===0&&orig<0);
+    return (neg?'−':'')+(i.replace('-','')).replace(/\B(?=(\d{3})+(?!\d))/g,',')+(d?'.'+d:'')+(more?'…':'');
+  }
+  const tokenLabel=t=>t==='^'?'^':t;
+  const tokClass=t=>t==='X'?'t xv':t==='='?'t eqs':OPS.includes(t)?'t op':(t==='ans'||t==='π'||FUNCS[t])?'t word':'t';
+  // 式を「分数を含む表示ツリー」に変換（計算には使わない、表示専用）
+  const isAtom=it=>it&&it.a;
+  function buildItems(tokens,start,inGroup){
+    let i=start; const items=[], len=tokens.length;
+    while(i<len){
+      const t=tokens[i];
+      if(/^[0-9.]$/.test(t)){ const toks=[]; while(i<len&&/^[0-9.]$/.test(tokens[i])) toks.push(i++); items.push({a:'toks',toks}); continue; }
+      if(t==='π'||t==='ans'||t==='X'){ items.push({a:'toks',toks:[i++]}); continue; }
+      if(t==='^('||t==='÷('){
+        const open=i; items.push({op:t[0],i:open});
+        const r=buildItems(tokens,i+1,true); let close=null;
+        if(r.end<len&&tokens[r.end]===')'){ close=r.end; i=r.end+1; } else i=r.end;
+        items.push({a:'group',open,inner:r.items,close,hidden:true}); continue;
+      }
+      if(t.endsWith('(')){
+        const open=i, r=buildItems(tokens,i+1,true); let close=null;
+        if(r.end<len&&tokens[r.end]===')'){ close=r.end; i=r.end+1; } else i=r.end;
+        items.push({a:'group',open,inner:r.items,close,root:t==='√('}); continue;
+      }
+      if(t===')'){ if(inGroup) return {items:groupItems(items),end:i}; items.push({a:'toks',toks:[i++]}); continue; }
+      items.push({op:t,i:i++});
+    }
+    return {items:groupItems(items),end:i};
+  }
+  function groupItems(items){
+    let out=[];
+    for(const it of items){ if(it.op==='%'&&isAtom(out[out.length-1])) out.push({a:'seq',items:[out.pop(),it]}); else out.push(it); }
+    items=out;
+    // べき乗：右から処理（2^3^2 = 2^(3^2)）。指数が未入力でも枠を出す
+    for(let k=items.length-1;k>=0;k--){
+      if(items[k].op!=='^') continue;
+      const base=isAtom(items[k-1])?items[k-1]:null, start=base?k-1:k;
+      const j=k+1; let exp=[];
+      if(items[j]&&items[j].op==='−'&&isAtom(items[j+1])) exp=[items[j],items[j+1]];
+      else if(isAtom(items[j])) exp=[items[j]];
+      items.splice(start,(k-start)+1+exp.length,{a:'pow',base,mark:items[k].i,exp});
+      k=start;
+    }
+    for(let k=0;k<items.length;k++){
+      if(items[k].op!=='÷') continue;
+      let start=k, left=null;
+      if(isAtom(items[k-1])){ left=items[k-1]; start=k-1; }
+      const j=k+1; let right=[];
+      if(items[j]&&items[j].op==='−'&&isAtom(items[j+1])) right=[items[j],items[j+1]];
+      else if(isAtom(items[j])) right=[items[j]];
+      const frac={a:'frac',num:left?[left]:[],div:items[k].i,den:right};
+      items.splice(start,(k-start)+1+right.length,frac); k=start;
+    }
+    return items;
+  }
+  function renderExpr(tokens,parent){
+    const tok=i=>{ const s=document.createElement('span'); s.className=tokClass(tokens[i]); s.dataset.i=i; s.textContent=tokenLabel(tokens[i]); return s; };
+    const ph=c=>{ const s=document.createElement('span'); s.className='ph'; s.dataset.c=c; return s; };
+    const mark=i=>{ const s=document.createElement('span'); s.className='mark'; s.dataset.i=i; return s; };
+    function draw(items,el){
+      for(const it of items){
+        if(it.op!==undefined){ el.appendChild(tok(it.i)); continue; }
+        if(it.a==='toks'){ it.toks.forEach(i=>el.appendChild(tok(i))); continue; }
+        if(it.a==='seq'){ draw(it.items,el); continue; }
+        if(it.a==='group'&&it.root){
+          const r=document.createElement('span'); r.className='root';
+          const sg=document.createElement('span'); sg.className='rsign'; sg.textContent='√'; sg.dataset.c=it.open+1;
+          const rd=document.createElement('span'); rd.className='radicand';
+          rd.appendChild(mark(it.open));
+          if(it.inner.length) draw(it.inner,rd); else rd.appendChild(ph(it.open+1));
+          r.append(sg,rd);
+          if(it.close!==null) r.appendChild(mark(it.close));
+          el.appendChild(r); continue;
+        }
+        if(it.a==='pow'){
+          const w=document.createElement('span'); w.className='pow';
+          if(it.base) draw([it.base],w); else w.appendChild(ph(it.mark));
+          const sp=document.createElement('span'); sp.className='sup';
+          sp.appendChild(mark(it.mark));
+          const hg=it.exp.length===1&&it.exp[0].hidden?it.exp[0]:null;
+          if(hg){ if(hg.inner.length) draw(hg.inner,sp); else sp.appendChild(ph(it.mark+1)); }
+          else if(it.exp.length) draw(it.exp,sp); else sp.appendChild(ph(it.mark+1));
+          w.appendChild(sp);
+          if(hg&&hg.close!==null) w.appendChild(mark(hg.close));   // ここより右は指数の外
+          el.appendChild(w); continue;
+        }
+        if(it.a==='group'){
+          el.appendChild(tok(it.open)); draw(it.inner,el);
+          if(it.close!==null) el.appendChild(tok(it.close));
+          else { const g=document.createElement('span'); g.className='ghost'; g.textContent=')'; el.appendChild(g); }
+          continue;
+        }
+        if(it.a==='frac'){
+          const f=document.createElement('span'); f.className='frac';
+          const n=document.createElement('span'); n.className='num';
+          const d=document.createElement('span'); d.className='den';
+          if(it.num.length) draw(it.num,n); else n.appendChild(ph(it.div));
+          const m=document.createElement('span'); m.className='divmark'; m.dataset.i=it.div; d.appendChild(m);
+          const hg=it.den.length===1&&it.den[0].hidden?it.den[0]:null;
+          if(hg){ if(hg.inner.length) draw(hg.inner,d); else d.appendChild(ph(it.div+1)); }
+          else if(it.den.length) draw(it.den,d); else d.appendChild(ph(it.div+1));
+          f.append(n,d); el.appendChild(f);
+          if(hg&&hg.close!==null) el.appendChild(mark(hg.close));  // ここより右は分数の外
+        }
+      }
+    }
+    draw(buildItems(tokens,0,false).items,parent);
+  }
+  function valueTokens(v){
+    let s=String(parseFloat(v.toPrecision(12))); const neg=s.startsWith('-'); if(neg) s=s.slice(1);
+    let out;
+    if(/e/.test(s)){ const [m,ex]=s.split('e'); const n=parseInt(ex,10);
+      out=[...m,'×','1','0','^', ...(n<0?['(','−',...String(-n),')']:[...String(n)])]; }
+    else out=[...s];
+    return neg?['(','−',...out,')']:out;
+  }
+
+  // ---- 描画 ----
+  const tapeEl=document.getElementById('tape'), tapeInner=document.getElementById('tapeInner');
+  const inputEl=document.getElementById('input'), previewEl=document.getElementById('preview');
+  const eqKey=document.getElementById('eqKey');
+  const degBtn=document.getElementById('degBtn');
+
+  function renderTape(){
+    tapeInner.innerHTML='';
+    S.history.forEach((h,idx)=>{
+      const e=document.createElement('div'); e.className='entry';
+      const ex=document.createElement('div'); ex.className='ex'; renderExpr(h.t,ex); if(!h.sol) ex.appendChild(document.createTextNode(' ='));
+      const rs=document.createElement('div'); rs.className='rs'; rs.textContent=h.sol?solText(h.sol):fmt(h.v);
+      ex.addEventListener('click',()=>{ S.tokens=[...h.t]; for(let i=openCount(h.t);i>0;i--) S.tokens.push(')'); S.cursor=S.tokens.length; renderInput(); });
+      rs.addEventListener('click',()=>{ insert(valueTokens(h.v)); e.classList.add('flash'); setTimeout(()=>e.classList.remove('flash'),180); });
+      e.append(ex, rs);
+      tapeInner.appendChild(e);
+    });
+    tapeEl.scrollTop=tapeEl.scrollHeight;
+  }
+
+  function renderInput(){
+    inputEl.innerHTML='';
+    renderExpr(S.tokens,inputEl);
+    const caret=document.createElement('span'); caret.className='caret';
+    const phAt=inputEl.querySelector(`.ph[data-c="${S.cursor}"]`);
+    if(phAt) phAt.before(caret);
+    else if(S.cursor===0){ const f=inputEl.querySelector('[data-i="0"]'); f?f.before(caret):inputEl.appendChild(caret); }
+    else inputEl.querySelector(`[data-i="${S.cursor-1}"]`).after(caret);
+    // プレビュー
+    previewEl.classList.remove('err');
+    previewEl.classList.remove('hint'); previewEl.textContent='';
+    // = ボタンの状態：通常計算 → 右辺へ → X を解く
+    const st=eqState();
+    eqKey.className='k eq st-'+st;
+    if(st==='calc'){ eqKey.querySelector('.sym').textContent='='; eqKey.querySelector('.cap').textContent=''; eqKey.setAttribute('aria-label','計算する'); }
+    if(st==='rhs'){ eqKey.querySelector('.sym').innerHTML='<span class="e1">=</span><span class="e2">右辺へ</span>'; eqKey.querySelector('.cap').textContent=''; eqKey.setAttribute('aria-label','= を入れて右辺を入力する'); }
+    if(st==='solve'){ eqKey.querySelector('.sym').innerHTML='<i>X</i> を求める'; eqKey.querySelector('.sym').style.fontSize='18px'; eqKey.querySelector('.cap').textContent='';
+      eqKey.setAttribute('aria-label','X を求める'); }
+    if(st!=='solve') eqKey.querySelector('.sym').style.fontSize='';
+    degBtn.textContent=S.deg?'DEG':'RAD';
+    caret.scrollIntoView({block:'nearest'});
+    tapeEl.scrollTop=tapeEl.scrollHeight;  // 入力欄が伸びても履歴の最新行を見えるように
+  }
+
+  // ---- 入力操作 ----
+  function insert(arr){
+    if(!S.tokens.length && ['+','×','÷','^','%','÷(','^('].includes(arr[0]) && S.history.length) arr=['ans',...arr];
+    S.tokens.splice(S.cursor,0,...arr); S.cursor+=arr.length; renderInput();
+  }
+  function matchOpen(i){ let d=0; for(let j=i;j>=0;j--){ const t=S.tokens[j]; if(t===')') d++; else if(t.endsWith('(')){ d--; if(d===0) return j; } } return -1; }
+  function matchClose(i){ let d=0; for(let j=i;j<S.tokens.length;j++){ const t=S.tokens[j]; if(t.endsWith('(')) d++; else if(t===')'){ d--; if(d===0) return j; } } return -1; }
+  function eqState(){ return S.tokens.includes('=')?'solve':S.tokens.includes('X')?'rhs':'calc'; }
+  function solText(sol){
+    if(sol.kind==='all') return 'すべての X';
+    if(!sol.roots.length) return '解なし';
+    return 'X = '+sol.roots.map(fmt).join(', ')+(sol.more?', …':'');
+  }
+  // 左辺 − 右辺 = 0 となる X を数値的に求める
+  function solveX(L,R){
+    if(!L.includes('X')&&!R.includes('X')) throw new Error('X を式に入れてください');
+    const g=x=>{ try{ const v=evaluate(L,S.ans,S.deg,x)-evaluate(R,S.ans,S.deg,x); return isFinite(v)?v:NaN; }catch(e){ return NaN; } };
+    // 書き方の誤りは、どの X でも同じエラーになるので先に報告
+    const probe=[0.37,1.9,-2.6,11.3,-0.041]; let firstErr=null, anyOk=false;
+    for(const x of probe){ try{ evaluate(L,S.ans,S.deg,x); evaluate(R,S.ans,S.deg,x); anyOk=true; }catch(e){ firstErr=firstErr||e; } }
+    if(!anyOk && firstErr && /途中|かっこ|位置|書き方|空/.test(firstErr.message)) throw firstErr;
+
+    // 1次式ならそのまま解く
+    const g0=g(0), g1=g(1), g2=g(2), gm=g(-3.7);
+    if([g0,g1,g2,gm].every(isFinite)){
+      const sc=Math.max(1,Math.abs(g0),Math.abs(g1),Math.abs(g2),Math.abs(gm));
+      const a=g1-g0;
+      if(Math.abs(g2-2*g1+g0)<=1e-10*sc && Math.abs(gm-(g0-3.7*a))<=1e-10*sc){
+        if(Math.abs(a)<=1e-12*sc) return Math.abs(g0)<=1e-12*sc?{kind:'all',roots:[]}:{roots:[]};
+        return {roots:[clean(-g0/a)]};
+      }
+    }
+    // 非線形：±1e-6〜1e6 を走査して符号変化・極小を探す
+    const xs=[0]; const N=1200;
+    for(let i=0;i<=N;i++){ const m=Math.pow(10,-6+12*i/N); xs.push(m,-m); }
+    xs.sort((a,b)=>a-b);
+    const ys=xs.map(g); const cand=[];
+    for(let i=0;i<xs.length;i++){
+      if(ys[i]===0) cand.push({t:'z',x:xs[i]});
+      if(i+1<xs.length&&isFinite(ys[i])&&isFinite(ys[i+1])&&ys[i]*ys[i+1]<0) cand.push({t:'b',a:xs[i],b:xs[i+1],ga:ys[i],gb:ys[i+1]});
+      if(i>0&&i+1<xs.length&&[ys[i-1],ys[i],ys[i+1]].every(isFinite)&&Math.abs(ys[i])<Math.abs(ys[i-1])&&Math.abs(ys[i])<Math.abs(ys[i+1])&&ys[i-1]*ys[i+1]>0&&ys[i]*ys[i-1]>0)
+        cand.push({t:'m',a:xs[i-1],b:xs[i+1],s:Math.max(Math.abs(ys[i-1]),Math.abs(ys[i+1]))});
+    }
+    const near=c=>Math.min(Math.abs(c.x??c.a),Math.abs(c.b??c.x));
+    cand.sort((p,q)=>near(p)-near(q));
+    const roots=[];
+    for(const c of cand.slice(0,60)){
+      if(c.t==='z'){ roots.push(c.x); continue; }
+      if(c.t==='b'){
+        let a=c.a,b=c.b,ga=c.ga;
+        for(let k=0;k<200&&b-a>1e-15*Math.max(1,Math.abs(a));k++){ const m=(a+b)/2, gm2=g(m); if(!isFinite(gm2)) break; if(gm2===0){a=b=m;break;} if(ga*gm2<0) b=m; else {a=m;ga=gm2;} }
+        const r=(a+b)/2, gr=Math.abs(g(r));
+        if(isFinite(gr)&&gr<=1e-7*Math.max(1,Math.min(Math.abs(c.ga),Math.abs(c.gb)))) roots.push(r); // 極（1/X など）は除外
+        continue;
+      }
+      // 接する解（例：(X−3)^2=0）
+      let a=c.a,b=c.b;
+      for(let k=0;k<200;k++){ const m1=a+(b-a)/3, m2=b-(b-a)/3; if(Math.abs(g(m1))<Math.abs(g(m2))) b=m2; else a=m1; }
+      const r=(a+b)/2; if(Math.abs(g(r))<=1e-9*Math.max(1,c.s)) roots.push(r);
+    }
+    const uniq=[];
+    for(const r of roots.map(clean).sort((a,b)=>a-b)) if(!uniq.some(u=>Math.abs(u-r)<=1e-7*Math.max(1,Math.abs(r)))) uniq.push(r);
+    if(!uniq.length){
+      if(!anyOk&&firstErr) throw firstErr;
+      return {roots:[]};
+    }
+    // 0 に近い順に最大5個を表示
+    const pick=[...uniq].sort((a,b)=>Math.abs(a)-Math.abs(b)).slice(0,5).sort((a,b)=>a-b);
+    return {roots:pick, more:uniq.length>5};
+  }
+  const clean=v=>{ const r=parseFloat(v.toPrecision(12)); const n=Math.round(r); return Math.abs(r-n)<1e-9*Math.max(1,Math.abs(n))?n:r; };
+  const BOXES=['√(','^(','÷('];  // ▶で抜けるまで中にとどまる枠
+  function press(k){
+    switch(k){
+      case 'AC': S.tokens=[]; S.cursor=0; renderInput(); return;
+      case 'BS': {
+        if(S.cursor<=0) return;
+        const i=S.cursor-1, t=S.tokens[i];
+        if(t===')'){ const o=matchOpen(i); if(o>=0&&BOXES.includes(S.tokens[o])){ S.cursor--; renderInput(); return; } }
+        if(BOXES.includes(t)){ const c=matchClose(i); if(c>=0) S.tokens.splice(c,1); }
+        S.tokens.splice(i,1); S.cursor--; renderInput(); return;
+      }
+      case '√(': insert(['√(',')']); S.cursor--; renderInput(); return;
+      case '^':  insert(['^(',')']); S.cursor--; renderInput(); return;
+      case '÷':  insert(['÷(',')']); S.cursor--; renderInput(); return;
+      case 'LEFT': S.cursor=Math.max(0,S.cursor-1); renderInput(); return;
+      case 'RIGHT': S.cursor=Math.min(S.tokens.length,S.cursor+1); renderInput(); return;
+      case 'DEG': S.deg=!S.deg; save(); renderInput(); return;
+      case '=': {
+        if(!S.tokens.length) return;
+        const st=eqState();
+        if(st==='rhs'){   // 左辺を閉じて = を入れ、右辺の入力へ
+          S.tokens.push(...Array(Math.max(0,openCount(S.tokens))).fill(')'),'=');
+          S.cursor=S.tokens.length; renderInput(); return;
+        }
+        if(st==='solve'){
+          try{
+            const k=S.tokens.indexOf('='), L=S.tokens.slice(0,k), R=S.tokens.slice(k+1);
+            if(!L.length) throw new Error('左辺がありません');
+            if(!R.length) throw new Error('右辺を入力してください');
+            const sol=solveX(L,R);
+            S.history.push({t:[...S.tokens], v:sol.roots.length?sol.roots[0]:0, sol});
+            if(sol.roots.length) S.ans=sol.roots[0];
+            S.tokens=[]; S.cursor=0; save(); renderTape(); renderInput();
+          }catch(e){ previewEl.classList.remove('hint'); previewEl.textContent=e.message; previewEl.classList.add('err'); }
+          return;
+        }
+        try{
+          const v=evaluate(S.tokens,S.ans,S.deg);
+          S.history.push({t:[...S.tokens], v}); S.ans=v; S.tokens=[]; S.cursor=0;
+          save(); renderTape(); renderInput();
+        }catch(e){ previewEl.textContent=e.message; previewEl.classList.add('err'); }
+        return;
+      }
+      default: insert([k]);
+    }
+  }
+
+  // 素早い連打でも取りこぼさないよう、click ではなく「触れた瞬間（pointerdown）」で入力する
+  const padEl=document.getElementById('pad'); let lastPtr=0;
+  padEl.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0) return;
+    const b=e.target.closest('[data-k]'); if(!b) return;
+    lastPtr=Date.now();
+    e.preventDefault();                 // ダブルタップ拡大・フォーカス移動・遅延clickを抑止
+    b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),110);
+    press(b.dataset.k);
+  });
+  // キーボード操作（Tab で選んで Enter/Space）の場合だけ click で入力
+  padEl.addEventListener('click',e=>{ if(e.detail!==0||Date.now()-lastPtr<1000) return; const b=e.target.closest('[data-k]'); if(b) press(b.dataset.k); });
+  padEl.addEventListener('dblclick',e=>e.preventDefault());
+  padEl.addEventListener('contextmenu',e=>e.preventDefault());
+
+  // 式の任意の位置をタップしてカーソル移動
+  inputEl.addEventListener('click',e=>{
+    const p=e.target.closest('.ph,.rsign');
+    if(p){ S.cursor=+p.dataset.c; renderInput(); return; }
+    const s=e.target.closest('.t');
+    if(!s){ if(e.target.closest('.frac')) return; S.cursor=S.tokens.length; renderInput(); return; }
+    const r=s.getBoundingClientRect(), i=+s.dataset.i;
+    S.cursor = e.clientX < r.left+r.width/2 ? i : i+1; renderInput();
+  });
+
+  // 履歴消去：押したら即消去
+  document.getElementById('clearHist').addEventListener('click',()=>{ S.history=[]; save(); renderTape(); });
+  degBtn.addEventListener('click',()=>press('DEG'));
+
+  // キーボード（PC用）
+  const map={'*':'×','x':'×','X':'X','/':'÷','-':'−','+':'+','^':'^','Enter':'=','=':'=','Backspace':'BS','Escape':'AC','%':'%','(':'(',')':')','.':'.','ArrowLeft':'LEFT','ArrowRight':'RIGHT','p':'π','a':'ans','r':'√(','s':'sin(','c':'cos(','t':'tan(','l':'log(','n':'ln('};
+  document.addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey) return;
+    const k=/^[0-9]$/.test(e.key)?e.key:map[e.key]; if(!k) return;
+    e.preventDefault(); press(k);
+    const b=document.querySelector(`[data-k="${CSS.escape(k)}"]`);
+    if(b){ b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),90); }
+  });
+
+  renderTape(); renderInput();
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
