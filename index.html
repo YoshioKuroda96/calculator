@@ -21,6 +21,7 @@
   --eq:#F0A500; --eq-text:#1B1F24; --eq-press:#D38F00;
   --fn:#C9CFD6; --fn-press:#B6BDC6; --sci:#E4E8EC; --sci-press:#D3D9DF;
   --ink:#1B1F24; --muted:#66707C; --line:#C4CAD1; --err:#B3261E; --caret:#E08E00;
+  --unit:#0B6E5E; --unit-bg:rgba(11,110,94,.14);
   --num-font:"Barlow Semi Condensed","Barlow","Helvetica Neue",Arial,sans-serif;
   --ui-font:"Barlow","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   box-sizing:border-box;
@@ -34,6 +35,7 @@
     --eq:#F0A500; --eq-text:#161A1F; --eq-press:#D38F00;
     --fn:#3A424C; --fn-press:#465059; --sci:#242A31; --sci-press:#2F363F;
     --ink:#EDF0F3; --muted:#8C96A2; --line:#343B44; --err:#FF8A80; --caret:#F0A500;
+    --unit:#5EEAD4; --unit-bg:rgba(94,234,212,.17);
   }
 }
 :root[data-theme="dark"]{
@@ -42,6 +44,7 @@
   --eq:#F0A500; --eq-text:#161A1F; --eq-press:#D38F00;
   --fn:#3A424C; --fn-press:#465059; --sci:#242A31; --sci-press:#2F363F;
   --ink:#EDF0F3; --muted:#8C96A2; --line:#343B44; --err:#FF8A80; --caret:#F0A500;
+  --unit:#5EEAD4; --unit-bg:rgba(94,234,212,.17);
 }
 *,*::before,*::after{box-sizing:inherit}
 html,body{height:100%;margin:0}
@@ -58,7 +61,10 @@ body{
 .linkbtn{border:0; background:transparent; color:var(--muted); font:500 14px var(--ui-font); padding:10px 8px; border-radius:10px; cursor:pointer}
 .linkbtn{background:var(--fn); color:var(--ink); font-weight:600; padding:7px 14px; margin:4px 0; border-radius:999px; border:1px solid var(--line); box-shadow:0 1px 0 var(--line)}
 .linkbtn:active{background:var(--fn-press)}
-.modebar{display:flex; justify-content:flex-start; padding:0 10px 2px; flex:0 0 auto}
+.modebar{display:flex; justify-content:space-between; align-items:center; padding:0 10px 2px; flex:0 0 auto}
+.modebar .linkbtn{height:34px; line-height:1; display:inline-flex; align-items:center; justify-content:center; padding-top:0; padding-bottom:0}
+.linkbtn.on{background:var(--op); color:var(--op-text); border-color:var(--op)}
+.linkbtn.on:active{background:var(--op-press)}
 
 /* ---- 履歴テープ（新しいものが下） ---- */
 .tape{flex:1 1 auto; min-height:60px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px}
@@ -77,6 +83,7 @@ body{
 .entry .ex::-webkit-scrollbar,.entry .rs::-webkit-scrollbar{display:none}
 .entry .ex:active,.entry .rs:active{background:var(--panel)}
 .entry.flash .rs{background:var(--sci)}
+.entry.flashx .ex{background:var(--sci)}
 .hint{color:var(--muted); font-size:14px; line-height:1.7; text-align:center; padding:24px 8px}
 
 /* ---- 入力中の式 ---- */
@@ -91,11 +98,14 @@ body{
 .t.xv{font-family:"Times New Roman",Georgia,serif; font-style:italic; color:var(--op); padding:0 .04em}
 .t.eqs{padding:0 .28em; color:var(--ink); font-weight:500}
 .k.xkey{font:italic 500 24px "Times New Roman",Georgia,serif; color:var(--op)}
-.t.unit{font-family:var(--ui-font); font-size:.56em; font-weight:600; color:var(--op); margin:0 .14em 0 .16em; letter-spacing:.01em}
+.t.unit{font-family:var(--ui-font); font-size:.72em; font-weight:700; color:var(--unit); background:var(--unit-bg); border-radius:6px; padding:.05em .32em; margin:0 .14em 0 .12em; letter-spacing:.01em}
 .t.arrow{padding:0 .25em; color:var(--muted)}
 .entry{flex-wrap:wrap}
-.entry .rs .ru{font-family:var(--ui-font); font-size:.58em; font-weight:600; color:var(--muted); margin-left:.3em}
-.entry .rs .ru.can{color:var(--op); text-decoration:underline dotted; text-underline-offset:4px; cursor:pointer}
+.entry .rs .ru{font-family:var(--ui-font); font-size:.62em; font-weight:700; color:var(--unit); background:var(--unit-bg); border-radius:6px; padding:.06em .4em; margin-left:.4em}
+.entry .rs .ru.can{text-decoration:underline dotted; text-underline-offset:4px; cursor:pointer}
+.toast{position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 58px); transform:translateX(-50%) translateY(-6px); max-width:88%; padding:9px 18px; border-radius:999px; background:var(--op); color:var(--op-text); font:600 14px var(--ui-font); opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; z-index:30; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--key); color:var(--err); border:1px solid var(--err)}
 .conv{flex-basis:100%; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; padding:6px 0 2px}
 .cv{border:1px solid var(--line); background:var(--key); color:var(--ink); border-radius:999px; padding:6px 13px; font:500 15px var(--ui-font); cursor:pointer}
 .cv:active{background:var(--key-press)}
@@ -104,7 +114,7 @@ body{
 .k.sci.cat{font:600 15px var(--ui-font)}
 .k.sci.cat.sel{background:var(--op); color:var(--op-text)}
 .k.sci.cat small{font-size:10px; margin-left:3px; opacity:.85}
-.k.sci.unitk{font:500 17px var(--ui-font)}
+.k.sci.unitk{font:700 17px var(--ui-font); color:var(--unit)}
 .k.sci.blank{visibility:hidden}
 .k.conv-key{font-size:26px; color:var(--op)}
 .preview.hint{color:var(--muted); font:400 13px var(--ui-font)}
@@ -173,6 +183,8 @@ body:focus{outline:none}
     <button class="linkbtn" id="clearHist">履歴を消去</button>
   </div>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <div class="tape" id="tape"><div class="tape-inner" id="tapeInner"></div></div>
 
   <div class="current">
@@ -180,14 +192,14 @@ body:focus{outline:none}
     <div class="preview" id="preview" aria-live="polite"></div>
   </div>
 
-  <div class="modebar"><button class="linkbtn" id="degBtn" aria-label="角度の単位を切り替える">DEG</button></div>
+  <div class="modebar"><button class="linkbtn" id="degBtn" aria-label="角度の単位を切り替える">DEG</button><button class="linkbtn" id="copyBtn" aria-pressed="false" aria-label="COPY mode (OFF: insert into input, ON: copy to clipboard)">COPY OFF</button></div>
 
   <div class="pad" id="pad">
     <button class="k tool" data-k="AC" aria-label="入力を消す">AC</button>
     <button class="k tool" data-k="LEFT" aria-label="カーソルを左へ">◀</button>
     <button class="k tool" data-k="RIGHT" aria-label="カーソルを右へ">▶</button>
-    <button class="k tool" data-k="BS" aria-label="1つ消す">⌫</button>
     <button class="k tool unitkey" data-k="UNIT" id="unitKey" aria-label="単位キーに切り替える" aria-pressed="false">単位</button>
+    <button class="k tool" data-k="BS" aria-label="1つ消す">⌫</button>
 
     <button class="k sci" data-k="sin(">sin</button>
     <button class="k sci" data-k="cos(">cos</button>
@@ -242,25 +254,20 @@ body:focus{outline:none}
 
   // ===== 単位 =====
   // d = [長さ, 質量, 時間, 電流] の指数、f = SI基準（m・kg・s・A）に対する倍率
-  const DL=[1,0,0,0], DM=[0,1,0,0], DT=[0,0,1,0], DI=[0,0,0,1], DSP=[1,0,-1,0],
-        DVO=[2,1,-3,-1], DPW=[2,1,-3,0], DEN=[2,1,-2,0], DOH=[2,1,-3,-2];
-  const OHM='\u03A9', MU='\u03BCm';
+  const DL=[1,0,0,0], DM=[0,1,0,0], DT=[0,0,1,0], DI=[0,0,0,1], DSP=[1,0,-1,0], DFO=[1,1,-2,0];
+  const MU='\u03BCm';
+  const G=9.80665;   // 標準重力加速度 [m/sec²]：1 kg重 = 9.80665 N
   const UNITS={
     [MU]:{label:MU,d:DL,f:1e-6}, 'mm':{label:'mm',d:DL,f:1e-3}, 'cm':{label:'cm',d:DL,f:1e-2}, 'm':{label:'m',d:DL,f:1}, 'km':{label:'km',d:DL,f:1e3},
-    'mg':{label:'mg',d:DM,f:1e-6}, 'g':{label:'g',d:DM,f:1e-3}, 'kg':{label:'kg',d:DM,f:1}, 't':{label:'t',d:DM,f:1e3},
-    'ms':{label:'ms',d:DT,f:1e-3}, 's':{label:'s',d:DT,f:1}, 'min':{label:'min',d:DT,f:60}, 'h':{label:'h',d:DT,f:3600},
-    'mm/s':{label:'mm/s',d:DSP,f:1e-3}, 'm/s':{label:'m/s',d:DSP,f:1}, 'm/min':{label:'m/min',d:DSP,f:1/60}, 'km/h':{label:'km/h',d:DSP,f:1000/3600},
-    'mA':{label:'mA',d:DI,f:1e-3}, 'A':{label:'A',d:DI,f:1},
-    'mV':{label:'mV',d:DVO,f:1e-3}, 'V':{label:'V',d:DVO,f:1}, 'kV':{label:'kV',d:DVO,f:1e3},
-    'mW':{label:'mW',d:DPW,f:1e-3}, 'W':{label:'W',d:DPW,f:1}, 'kW':{label:'kW',d:DPW,f:1e3},
-    'Wh':{label:'Wh',d:DEN,f:3600}, 'kWh':{label:'kWh',d:DEN,f:3.6e6},
-    [OHM]:{label:OHM,d:DOH,f:1},
+    'g':{label:'g',d:DM,f:1e-3}, 'kg':{label:'kg',d:DM,f:1}, 't':{label:'t',d:DM,f:1e3}, 'N':{label:'N',d:DFO,f:1},
+    'msec':{label:'msec',d:DT,f:1e-3}, 'sec':{label:'sec',d:DT,f:1}, 'min':{label:'min',d:DT,f:60}, 'h':{label:'h',d:DT,f:3600},
+    'mm/sec':{label:'mm/sec',d:DSP,f:1e-3}, 'm/sec':{label:'m/sec',d:DSP,f:1}, 'm/min':{label:'m/min',d:DSP,f:1/60}, 'm/h':{label:'m/h',d:DSP,f:1/3600}, 'km/h':{label:'km/h',d:DSP,f:1000/3600},
   };
   const UNIT_KEYS=Object.keys(UNITS);
-  // 単位キーパッドの並び（電気は2ページ）
-  const CATS=[['len','長さ'],['mass','重さ'],['time','時間'],['speed','速度'],['elec','電気']];
-  const UNIT_PAGES={len:[[MU,'mm','cm','m','km']], mass:[['mg','g','kg','t']], time:[['ms','s','min','h']],
-                    speed:[['mm/s','m/s','m/min','km/h']], elec:[['mA','A','V','kV',OHM],['mW','W','kW','Wh','kWh']]};
+  // 単位キーパッドの並び
+  const CATS=[['speed','速度'],['time','時間'],['len','距離'],['mass','質量']];
+  const UNIT_PAGES={len:[[MU,'mm','cm','m','km']], mass:[['g','kg','t','N']], time:[['msec','sec','min','h']],
+                    speed:[['mm/sec','m/sec','m/min','m/h','km/h']]};
   const isUnit=t=>typeof t==='string'&&t.startsWith('u:');
   const D0=[0,0,0,0];
   const Q=(v,d=D0,u={})=>({v,d,u});
@@ -271,7 +278,10 @@ body:focus{outline:none}
   const qMul=(a,b)=>Q(a.v*b.v, a.d.map((x,i)=>x+b.d[i]), uMerge(a.u,b.u,1));
   const qDiv=(a,b)=>{ if(b.v===0) throw new Error('0 で割ることはできません'); return Q(a.v/b.v, a.d.map((x,i)=>x-b.d[i]), uMerge(a.u,b.u,-1)); };
   function qAdd(a,b,sg){
-    if(!dimEq(a.d,b.d)) throw new Error('単位の種類が違うため、足し算・引き算できません');
+    if(!dimEq(a.d,b.d)){
+      const mf=(dimEq(a.d,DM)&&dimEq(b.d,DFO))||(dimEq(a.d,DFO)&&dimEq(b.d,DM));
+      throw new Error(mf?'kg と N は足し算・引き算できません（→ で換算してから計算）':'単位の種類が違うため、足し算・引き算できません');
+    }
     return Q(a.v+sg*b.v, a.d, Object.keys(a.u).length?a.u:b.u);   // 単位は左側（先に出た方）に揃える
   }
   const unitQ=key=>{ const U=UNITS[key]; if(!U) throw new Error('「'+key+'」は使えない単位です'); return Q(U.f,U.d,{[key]:1}); };
@@ -301,13 +311,33 @@ body:focus{outline:none}
   }
 
   // ---- 状態 ----
-  let S={ tokens:[], cursor:0, history:[], ans:0, ansQ:null, deg:true, unitMode:false, unitCat:'len', unitPage:0 };
+  let S={ tokens:[], cursor:0, history:[], ans:0, ansQ:null, deg:true, copyMode:false, unitMode:false, unitCat:'len', unitPage:0 };
   try{
     const saved=JSON.parse(localStorage.getItem('calc2-state')||'null');
-    if(saved){ S.history=saved.history||[]; S.ans=saved.ans||0; S.ansQ=saved.ansQ||null; S.deg=saved.deg!==false;
+    if(saved){ S.history=saved.history||[]; S.ans=saved.ans||0; S.ansQ=saved.ansQ||null; S.deg=saved.deg!==false; S.copyMode=!!saved.copyMode;
       S.unitMode=!!saved.unitMode; S.unitCat=saved.unitCat||'len'; S.unitPage=saved.unitPage||0; }
   }catch(e){}
-  const save=()=>{ try{ localStorage.setItem('calc2-state', JSON.stringify({history:S.history.slice(-300), ans:S.ans, ansQ:S.ansQ, deg:S.deg, unitMode:S.unitMode, unitCat:S.unitCat, unitPage:S.unitPage})); }catch(e){} };
+  // 旧表記（s・m/s・mm/s）で保存された履歴を新表記（sec・m/sec・mm/sec）に移行
+  (function migrate(){ try{
+    const RN={'s':'sec','m/s':'m/sec','mm/s':'mm/sec','ms':'msec'}, rn=k=>RN[k]||k;
+    const fixU=u=>{ if(!u) return u; const o={}; for(const k in u) o[rn(k)]=u[k]; return o; };
+    S.history.forEach(h=>{
+      h.t=h.t.map(t=>isUnit(t)?'u:'+rn(t.slice(2)):t);
+      if(h.u){ h.u=fixU(h.u); const ks=Object.keys(h.u); if(ks.length===1&&h.u[ks[0]]===1&&UNITS[ks[0]]) h.lab=UNITS[ks[0]].label; }
+    });
+    if(S.ansQ&&S.ansQ.u) S.ansQ.u=fixU(S.ansQ.u);
+    // 削除した単位（電気・mg）を含む行は、単位を外して数値だけの行にする
+    const gone=k=>!UNITS[k];
+    S.history.forEach(h=>{
+      if(h.t.some(t=>isUnit(t)&&gone(t.slice(2)))||(h.u&&Object.keys(h.u).some(gone))){
+        if(h.d&&dimEq(h.d,DM)&&h.u&&Object.keys(h.u).every(k=>k==='mg')){   // mg だけの行は g に直して残す
+          h.t=[...valueTokens(h.v/1e-3),'u:g']; h.u={g:1}; h.lab='g'; h.f=1e-3;
+        } else { h.t=valueTokens(h.v); delete h.d; delete h.u; delete h.lab; delete h.f; }
+      }
+    });
+    if(S.ansQ&&S.ansQ.u&&Object.keys(S.ansQ.u).some(gone)) S.ansQ=null;
+  }catch(e){} })();
+  const save=()=>{ try{ localStorage.setItem('calc2-state', JSON.stringify({history:S.history.slice(-300), ans:S.ans, ansQ:S.ansQ, deg:S.deg, copyMode:S.copyMode, unitMode:S.unitMode, unitCat:S.unitCat, unitPage:S.unitPage})); }catch(e){} };
 
   // ---- 式の評価（evalを使わない） ----
   function openCount(tokens){ let n=0; for(const t of tokens){ if(t.endsWith('(')) n++; else if(t===')') n--; } return n; }
@@ -395,8 +425,12 @@ body:focus{outline:none}
       if(!L.length) throw new Error('→ の前に値を入れてください');
       if(R.length!==1||!isUnit(R[0])) throw new Error('→ の後には単位を1つ入れてください');
       const q=evalQ(L,S.deg), key=R[0].slice(2), U=UNITS[key];
-      if(!dimEq(q.d,U.d)) throw new Error(isDimless(q)?'単位のない値は変換できません':'「'+displayUnit(q).label+'」は「'+U.label+'」に変換できません');
-      return {t:[...tokens], v:q.v, d:q.d, u:{[key]:1}, lab:U.label, f:U.f};
+      let v=q.v;
+      if(dimEq(q.d,U.d)){}
+      else if(dimEq(q.d,DM)&&dimEq(U.d,DFO)) v=q.v*G;        // kg → N（kg を kg重 とみなす）
+      else if(dimEq(q.d,DFO)&&dimEq(U.d,DM)) v=q.v/G;        // N → kg
+      else throw new Error(isDimless(q)?'単位のない値は変換できません':'「'+displayUnit(q).label+'」は「'+U.label+'」に変換できません');
+      return {t:[...tokens], v, d:U.d, u:{[key]:1}, lab:U.label, f:U.f};
     }
     const q=evalQ(tokens,S.deg), du=displayUnit(q);
     return du ? {t:[...tokens], v:q.v, d:q.d, u:du.u, lab:du.label, f:du.f} : {t:[...tokens], v:q.v};
@@ -548,9 +582,68 @@ body:focus{outline:none}
   function convCandidates(h){
     if(!h.d) return [];
     const cur=Object.keys(h.u).length===1&&h.u[Object.keys(h.u)[0]]===1?Object.keys(h.u)[0]:null;
-    return UNIT_KEYS.filter(k=>k!==cur&&dimEq(UNITS[k].d,h.d));
+    const dims=[h.d]; if(dimEq(h.d,DM)) dims.push(DFO); else if(dimEq(h.d,DFO)) dims.push(DM);   // kg ⇄ N
+    return UNIT_KEYS.filter(k=>k!==cur&&dims.some(d=>dimEq(UNITS[k].d,d)));
   }
   let convOpen=null;
+
+  // ---- クリップボードへコピー ----
+  const toastEl=document.getElementById('toast'); let toastTimer=null;
+  function showToast(msg,err){
+    toastEl.textContent=msg; toastEl.classList.toggle('err',!!err); toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1600);
+  }
+  // 数値だけの文字列（桁区切りなし・半角のマイナス・有効数字12桁。表示の「…」は付けない）
+  function plainNum(x){ let r=parseFloat(x.toPrecision(12)); if(Object.is(r,-0)) r=0; return String(r); }
+  // 答えのコピー用テキスト：単位つきの計算なら「15000 mm」、単位なしなら数値だけ
+  function answerText(h){
+    if(h.sol){ if(h.sol.kind==='all') return 'すべての X'; if(!h.sol.roots.length) return '解なし'; return h.sol.roots.map(plainNum).join(', '); }
+    const n=plainNum(h.v/(h.f||1));
+    return (h.d&&h.lab)?n+' '+h.lab:n;
+  }
+  // 式のコピー用テキスト（キーボードで打つ形。この電卓にそのまま貼り付け直せる）
+  function tokensToText(tokens){
+    const M={'÷':'/','−':'-','÷(':'/(','√(':'sqrt(','π':'pi','→':'->'};   // × と X はそのまま
+    let out='';
+    for(let i=0;i<tokens.length;i++){
+      const t=tokens[i];
+      if(t==='÷('||t==='^('){          // 分母・指数が数字だけ（または X・π・ans 1つ）なら、かっこを省いて読みやすく
+        let d=0,j=i; for(;j<tokens.length;j++){ if(tokens[j].endsWith('(')) d++; else if(tokens[j]===')'){ d--; if(d===0) break; } }
+        const inner=tokens.slice(i+1,j);
+        const simple=j<tokens.length&&inner.length>0&&(inner.every(x=>/^[0-9.]$/.test(x))||(inner.length===1&&['X','π','ans'].includes(inner[0])));
+        if(simple){ out+=(t==='÷('?'/':'^')+tokensToText(inner); i=j; continue; }
+        // 内側がすでに1組のかっこで囲まれているときは、外側のかっこを省く（8/((2+2)) → 8/(2+2)）
+        if(j<tokens.length&&inner.length>2&&inner[0]==='('){
+          let dd=0,k=0; for(;k<inner.length;k++){ if(inner[k].endsWith('(')) dd++; else if(inner[k]===')'){ dd--; if(dd===0) break; } }
+          if(k===inner.length-1){ out+=(t==='÷('?'/':'^')+tokensToText(inner); i=j; continue; }
+        }
+      }
+      out+=isUnit(t)?UNITS[t.slice(2)].label:(M[t]||t);
+    }
+    return out;
+  }
+  function exprText(h,idx){
+    const t=expandAnsTokens(h.t,idx-1); for(let n=openCount(t);n>0;n--) t.push(')');   // ans は展開した式で
+    return tokensToText(t);
+  }
+  async function copyText(text){
+    try{ if(navigator.clipboard&&window.isSecureContext){ await navigator.clipboard.writeText(text); return true; } }catch(e){}
+    try{   // 埋め込み表示などで Clipboard API が使えない場合の代替
+      const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0;-webkit-user-select:text;user-select:text';
+      document.body.appendChild(ta); ta.focus({preventScroll:true}); ta.select(); ta.setSelectionRange(0,text.length);
+      const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok;
+    }catch(e){ return false; }
+  }
+  // 式と答えをあわせたコピー用テキスト（例：5m/min×3min = 15 m）
+  function exprResultText(h,idx){
+    const ex=exprText(h,idx), ans=answerText(h);
+    if(!h.sol) return ex+' = '+ans;
+    return (h.sol.kind==='all'||!h.sol.roots.length)?ex+' → '+ans:ex+' → X = '+ans;
+  }
+  // コピー成功のときは何も表示しない（失敗したときだけ知らせる）
+  async function copyAnswer(text){ const ok=await copyText(text); if(!ok) showToast('Copy failed',true); return ok; }
+
 
   // ---- 描画 ----
   const tapeEl=document.getElementById('tape'), tapeInner=document.getElementById('tapeInner');
@@ -592,8 +685,17 @@ body:focus{outline:none}
           }
         }
       }
-      ex.addEventListener('click',()=>insertHistoryExpr(h,idx));
-      rs.addEventListener('click',()=>{ insert(h.sol?valueTokens(h.v):entryValueTokens(h)); e.classList.add('flash'); setTimeout(()=>e.classList.remove('flash'),180); });
+      // 式をクリック：コピーOFF → 入力欄へ式を挿入 ／ コピーON → 式と答えをクリップボードへコピー
+      ex.addEventListener('click',()=>{
+        if(S.copyMode) copyAnswer(exprResultText(h,idx)); else insertHistoryExpr(h,idx);
+        e.classList.add('flashx'); setTimeout(()=>e.classList.remove('flashx'),180);
+      });
+      // 答えをクリック：コピーOFF → 入力欄へ答えを挿入 ／ コピーON → 答え（単位つきなら単位つき）をコピー
+      rs.addEventListener('click',()=>{
+        if(S.copyMode) copyAnswer(answerText(h));
+        else if(!h.sol) insert(entryValueTokens(h)); else if(h.sol.roots.length) insert(valueTokens(h.v));
+        e.classList.add('flash'); setTimeout(()=>e.classList.remove('flash'),180);
+      });
       e.append(ex, rs);
       if(convOpen===idx){
         const cv=document.createElement('div'); cv.className='conv';
@@ -801,6 +903,7 @@ body:focus{outline:none}
       const b=sciKeys[i]; b.className='k sci cat'+(c===S.unitCat?' sel':''); b.dataset.k='CAT:'+c; b.setAttribute('aria-label',label+'の単位');
       b.innerHTML=label+(c===S.unitCat&&pages.length>1?'<small>'+(pg+1)+'/'+pages.length+'</small>':'');
     });
+    for(let i=CATS.length;i<5;i++){ const b=sciKeys[i]; b.className='k sci blank'; b.dataset.k=''; b.textContent=''; b.removeAttribute('aria-label'); }
     for(let i=0;i<5;i++){
       const b=sciKeys[5+i], key=page[i];
       if(key){ b.className='k sci unitk'; b.dataset.k='u:'+key; b.textContent=UNITS[key].label; b.setAttribute('aria-label',UNITS[key].label); }
@@ -835,8 +938,12 @@ body:focus{outline:none}
   });
 
   // 履歴消去：押したら即消去
-  document.getElementById('clearHist').addEventListener('click',()=>{ S.history=[]; save(); renderTape(); });
+  document.getElementById('clearHist').addEventListener('click',()=>{ S.history=[]; convOpen=null; save(); renderTape(); });
   degBtn.addEventListener('click',()=>press('DEG'));
+  const copyBtn=document.getElementById('copyBtn');
+  function renderCopyBtn(){ copyBtn.textContent='COPY '+(S.copyMode?'ON':'OFF'); copyBtn.classList.toggle('on',!!S.copyMode); copyBtn.setAttribute('aria-pressed',S.copyMode?'true':'false'); }
+  copyBtn.addEventListener('click',()=>{ S.copyMode=!S.copyMode; save(); renderCopyBtn(); });
+  renderCopyBtn();
 
   // ===== キーボード入力（PC用） =====
   // 日本語IMEがオンのとき、Windowsでは e.key が 'Process' になり数字や記号が取れないことがある。
@@ -850,7 +957,7 @@ body:focus{outline:none}
   //  ・まだ候補が残る場合（m → mm・min・m/min など）は、次に数字や記号を押した時点で確定
   //  ・単位は大文字小文字を区別（A・V・W）。区別しなくても1つに決まれば受け付ける（a→A、kw→kW）
   const WORDS={sin:'sin(',cos:'cos(',tan:'tan(',log:'log(',ln:'ln(',sqrt:'√(',pi:'π',ans:'ans'};
-  const UNIT_ALIAS={um:MU,ohm:OHM};
+  const UNIT_ALIAS={um:MU,s:'sec',ms:'msec','m/s':'m/sec','mm/s':'mm/sec'};
   let wordBuf='', wordTimer=null;
   function lookupUnit(w){
     if(UNITS[w]) return w;
@@ -935,7 +1042,7 @@ body:focus{outline:none}
       if(key.length===1&&e.code) learned[e.code+'|'+(e.shiftKey?1:0)]=key;
     }
     // 英字：x は変数X、それ以外は関数名・単位
-    if(/^[a-zA-Z\u03BC\u03A9]$/.test(key)){
+    if(/^[a-zA-Z\u03BC]$/.test(key)){
       e.preventDefault();
       if(key==='x'||key==='X'){ if(!wordBuf){ endRecall(); press('X'); flashKey('X'); return; } }
       endRecall(); typeChar(key); return;
@@ -980,7 +1087,7 @@ body:focus{outline:none}
       if(MAP[c]){ out.push(MAP[c]); i++; continue; }
       if(c==='π'){ out.push('π'); i++; continue; }
       if(c==='√'){ out.push('√('); i++; if(str[i]==='(') i++; continue; }
-      const m=str.slice(i).match(/^[A-Za-z\u03BC\u03A9]+/);
+      const m=str.slice(i).match(/^[A-Za-z\u03BC]+/);
       if(m){
         const raw=m[0], w=raw.toLowerCase(); i+=raw.length;
         if(FN[w]){ out.push(FN[w]); if(str[i]==='(') i++; continue; }
@@ -989,7 +1096,7 @@ body:focus{outline:none}
         if(w==='x'){ out.push('X'); continue; }
         if(str[i]==='/'){                      // m/min などの複合単位
           const m2=str.slice(i+1).match(/^[A-Za-z]+/);
-          if(m2){ const cu=UNITS[raw+'/'+m2[0]]?raw+'/'+m2[0]:null; if(cu){ out.push('u:'+cu); i+=1+m2[0].length; continue; } }
+          if(m2){ const cu=lookupUnit(raw+'/'+m2[0]); if(cu&&cu.includes('/')){ out.push('u:'+cu); i+=1+m2[0].length; continue; } }
         }
         const u=lookupUnit(raw); if(u){ out.push('u:'+u); continue; }
         throw new Error('「'+raw+'」は使えません');
@@ -999,16 +1106,19 @@ body:focus{outline:none}
     return out;
   }
   document.addEventListener('paste',e=>{
-    const text=(e.clipboardData||window.clipboardData).getData('text'); if(!text) return;
+    let text=(e.clipboardData||window.clipboardData).getData('text'); if(!text) return;
     e.preventDefault();
+    { const eqi=text.normalize('NFKC').indexOf('=');          // 「5m/min×3min = 15 m」→ 式の部分だけ（X を含む方程式は全体）
+      if(eqi>=0&&!/x/i.test(text.normalize('NFKC').slice(0,eqi))) text=text.normalize('NFKC').slice(0,eqi); }
     try{ const t=parseText(text); if(t.filter(x=>x==='=').length>1) throw new Error('= は1つだけ使えます'); S.tokens.splice(S.cursor,0,...t); S.cursor+=t.length; renderInput(); }
     catch(err){ previewEl.classList.remove('hint'); previewEl.textContent='貼り付けできません：'+err.message; previewEl.classList.add('err'); }
   });
   // ===== コピー（Ctrl+C / ⌘+C）：入力中の式、空なら直前の答え =====
   document.addEventListener('copy',e=>{
     const sel=window.getSelection&&String(window.getSelection()); if(sel) return;
-    const txt=S.tokens.length? S.tokens.map(t=>isUnit(t)?UNITS[t.slice(2)].label:({'×':'*','÷':'/','−':'-','÷(':'/(','^(':'^(','√(':'sqrt(','π':'pi','X':'x','→':'->'}[t]||t)).join('')
-                             : String(parseFloat(S.ans.toPrecision(12)));
+    const txt=S.tokens.length? tokensToText(S.tokens)
+                             : (S.history.length?answerText(S.history[S.history.length-1]):'');
+    if(!txt) return;
     e.clipboardData.setData('text/plain',txt); e.preventDefault();
   });
 
