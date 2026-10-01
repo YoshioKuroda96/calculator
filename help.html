@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>電卓の使い方</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Semi+Condensed:wght@400;500&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DDE1E5; --sheet:#EEF0F2; --cell:#F8F9FA; --line:#C4CAD1;
+  --ink:#1B1F24; --muted:#5E6873;
+  --key:#FAFBFC; --key-edge:#B9C0C8; --fn:#C9CFD6; --sci:#E4E8EC;
+  --op:#23466B; --op-text:#FFFFFF; --eq:#F0A500; --eq-text:#1B1F24;
+  --unit:#0B6E5E; --unit-bg:rgba(11,110,94,.14); --caret:#E08E00;
+  --red:#C62828; --red-bg:rgba(198,40,40,.08);
+  --jp:"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+  --latin:"Barlow","Noto Sans JP","Hiragino Sans",Meiryo,sans-serif;
+  --num:"Barlow Semi Condensed","Barlow","Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#161A1F; --sheet:#1F242B; --cell:#242A31; --line:#343B44;
+    --ink:#EDF0F3; --muted:#9AA4AF;
+    --key:#2A3038; --key-edge:#11151A; --fn:#3A424C; --sci:#2F363F;
+    --op:#3D6FA3; --op-text:#FFFFFF; --eq:#F0A500; --eq-text:#161A1F;
+    --unit:#5EEAD4; --unit-bg:rgba(94,234,212,.17); --caret:#F0A500;
+    --red:#FF8A80; --red-bg:rgba(255,138,128,.10);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161A1F; --sheet:#1F242B; --cell:#242A31; --line:#343B44;
+  --ink:#EDF0F3; --muted:#9AA4AF;
+  --key:#2A3038; --key-edge:#11151A; --fn:#3A424C; --sci:#2F363F;
+  --op:#3D6FA3; --op-text:#FFFFFF; --eq:#F0A500; --eq-text:#161A1F;
+  --unit:#5EEAD4; --unit-bg:rgba(94,234,212,.17); --caret:#F0A500;
+  --red:#FF8A80; --red-bg:rgba(255,138,128,.10);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 12px); -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--ink); font:400 16px/1.85 var(--jp)}
+main{max-width:46rem; margin:0 auto; padding:28px 18px 64px}
+a{color:var(--op)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--eq); outline-offset:2px; border-radius:6px}
+
+/* ---- 見出し ---- */
+h1{font:700 2.1rem/1.25 var(--latin); margin:0 0 .4rem; letter-spacing:.01em}
+.lead{color:var(--muted); margin:0 0 1.4rem; max-width:36rem}
+section{padding-top:2.2rem; margin-top:2.2rem; border-top:1px solid var(--line)}
+h2{font:700 1.45rem/1.35 var(--latin); margin:0 0 .9rem; display:flex; flex-wrap:wrap; align-items:center; gap:.35rem .7rem}
+h2 .keys{display:inline-flex; gap:.3rem; flex-wrap:wrap}
+h3{font:700 1.05rem/1.5 var(--jp); margin:1.6rem 0 .5rem}
+p{margin:.5rem 0}
+ul,ol{margin:.5rem 0; padding-left:1.4rem}
+li{margin:.25rem 0}
+strong{font-weight:700}
+.note{color:var(--muted); font-size:.92rem}
+.warn{color:var(--red); background:var(--red-bg); border-left:3px solid var(--red); padding:.5rem .8rem; border-radius:0 8px 8px 0; margin:.8rem 0; font-weight:700}
+.warn::before{content:"⚠️ "}
+.url code{overflow-wrap:anywhere}
+code{font-family:var(--num); font-size:1.02em; background:var(--cell); border:1px solid var(--line); border-radius:5px; padding:.02em .35em}
+
+/* ---- 目次 ---- */
+nav.toc{display:flex; flex-wrap:wrap; gap:.4rem; margin:1.2rem 0 0}
+nav.toc a{font:600 .88rem/1 var(--jp); text-decoration:none; color:var(--ink); background:var(--sheet); border:1px solid var(--line); border-radius:999px; padding:.5rem .8rem}
+nav.toc a:active{background:var(--sci)}
+
+/* ---- キーの見た目（電卓と同じ） ---- */
+.key{display:inline-flex; align-items:center; justify-content:center; min-width:2em; height:1.75em; padding:0 .5em; margin:0 .08em;
+  font:500 .98rem/1 var(--num); color:var(--ink); background:var(--key); border-radius:7px; box-shadow:0 2px 0 var(--key-edge); vertical-align:.08em; white-space:nowrap}
+.key.tool{background:var(--fn); font-family:var(--jp); font-weight:700; font-size:.82rem}
+.key.sci{background:var(--sci)}
+.key.op{background:var(--op); color:var(--op-text); font-size:1.08rem}
+.key.eq{background:var(--eq); color:var(--eq-text); font-weight:700}
+.key.eq.rhs{background:var(--op); color:var(--op-text); font-family:var(--jp); font-size:.82rem}
+.key.eq.solve{box-shadow:0 2px 0 var(--key-edge), inset 0 0 0 2px var(--op); font-family:var(--jp); font-size:.82rem}
+.key.u{color:var(--unit); font-family:var(--jp); font-weight:700; font-size:.82rem}
+.key.cat{background:var(--sci); font-family:var(--jp); font-weight:700; font-size:.82rem}
+.key.cat.sel{background:var(--op); color:var(--op-text)}
+.key.pill{border-radius:999px; background:var(--fn); font:700 .8rem/1 var(--latin); padding:0 .8em}
+.key.pill.on{background:var(--op); color:var(--op-text)}
+.u{display:inline-block; font:700 .74em/1.3 var(--jp); color:var(--unit); background:var(--unit-bg); border-radius:5px; padding:.02em .32em; margin:0 .12em; vertical-align:.08em}
+
+/* ---- 画面の再現 ---- */
+.screen{background:var(--sheet); border:1px solid var(--line); border-radius:14px; padding:.4rem 1rem; margin:1rem 0; font-family:var(--num)}
+.row{display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.55rem 0; border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .ex{color:var(--muted); font-size:1.1rem; white-space:nowrap; overflow-x:auto}
+.row .rs{font-size:1.55rem; font-weight:500; white-space:nowrap}
+.row .rs .u{font-size:.6em}
+.inputline{font-size:1.7rem; text-align:right; padding:.6rem 0 .4rem; white-space:nowrap; overflow-x:auto}
+.caret{display:inline-block; width:2px; height:1em; background:var(--caret); vertical-align:-.12em; margin:0 1px}
+.frac{display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; font-size:.86em; line-height:1.15; margin:0 .1em}
+.frac .n{border-bottom:2px solid currentColor; padding:0 .15em}
+.frac .d{padding:0 .15em}
+sup.s{font-size:.6em; vertical-align:1.05em; line-height:1}
+.root{display:inline-flex; align-items:stretch}
+.root .rv{border-top:2px solid currentColor; padding:0 .12em; margin-left:-.02em}
+.box{display:inline-block; width:.6em; height:.8em; border:1.5px dashed var(--muted); border-radius:3px; vertical-align:middle}
+.xv{font-family:"Times New Roman",Georgia,serif; font-style:italic; color:var(--op)}
+.caption{font:400 .82rem/1.5 var(--jp); color:var(--muted); text-align:right; margin:-.6rem 0 1rem}
+
+/* ---- 表 ---- */
+.tbl{overflow-x:auto; margin:.8rem 0; border:1px solid var(--line); border-radius:10px}
+table{border-collapse:collapse; width:100%; font-size:.94rem; line-height:1.6}
+td code{white-space:normal; -webkit-box-decoration-break:clone; box-decoration-break:clone}
+.tbl .u{font-size:.84rem; margin:.15em .12em}
+th,td{padding:.55rem .75rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+th{background:var(--sheet); font-weight:700}
+td{background:var(--cell)}
+tr:last-child td{border-bottom:0}
+td.k{white-space:nowrap}
+
+/* ---- 手順 ---- */
+ol.steps{list-style:none; padding:0; counter-reset:s; margin:.8rem 0}
+ol.steps li{counter-increment:s; position:relative; padding:.15rem 0 .15rem 2.4rem; margin:.45rem 0}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:.2rem; width:1.75rem; height:1.75rem; border-radius:50%;
+  background:var(--op); color:var(--op-text); font:700 .9rem/1.75rem var(--latin); text-align:center}
+
+footer{margin-top:3rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.85rem}
+@media (max-width:480px){ h1{font-size:1.75rem} h2{font-size:1.25rem} main{padding:20px 14px 56px} .row .rs{font-size:1.3rem} }
+@media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto!important} }
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>電卓の使い方</h1>
+  <p class="lead">式をそのまま入力して計算し、単位つきの計算や X の方程式も解ける電卓です。画面とキーの見た目どおりに、操作のコツをまとめました。</p>
+
+  <div class="screen" aria-label="電卓の履歴の表示例">
+    <div class="row"><span class="ex">5<span class="u">m/min</span>×3<span class="u">min</span> =</span><span class="rs">15<span class="u">m</span></span></div>
+    <div class="row"><span class="ex">15<span class="u">m</span> → <span class="u">mm</span> =</span><span class="rs">15,000<span class="u">mm</span></span></div>
+    <div class="row"><span class="ex">2<span class="xv">X</span>+3 = 7</span><span class="rs">X = 2</span></div>
+    <div class="row"><span class="ex"><span class="frac"><span class="n">1</span><span class="d">3</span></span> =</span><span class="rs">0.333…</span></div>
+  </div>
+
+  <nav class="toc" aria-label="目次">
+    <a href="#screen">画面の見かた</a><a href="#basic">基本の計算</a><a href="#edit">式の編集</a><a href="#frac">分数・指数・ルート</a>
+    <a href="#func">関数と角度</a><a href="#ans">ans と履歴</a><a href="#copy">INSERT / CLIP COPY</a><a href="#eq">方程式 X</a>
+    <a href="#unit">単位</a><a href="#kb">キーボード</a><a href="#install">インストール</a><a href="#trouble">困ったとき</a>
+  </nav>
+</header>
+
+<!-- ======================================================= -->
+<section id="screen">
+  <h2>画面の見かた</h2>
+  <div class="tbl"><table>
+    <tr><th>場所</th><th>内容</th></tr>
+    <tr><td class="k"><strong>履歴</strong>（上）</td><td>計算した式（左）と答え（右）。<strong>最新が一番下</strong>に追加されます。</td></tr>
+    <tr><td class="k"><strong>入力欄</strong></td><td>入力中の式。オレンジの縦線がカーソルです。</td></tr>
+    <tr><td class="k"><span class="key pill">DEG</span></td><td>角度の単位を切り替えます（<code>DEG</code> 度 ⇄ <code>RAD</code> ラジアン）。</td></tr>
+    <tr><td class="k"><span class="key pill">INSERT</span></td><td>履歴をタップしたときの動作を切り替えます（<a href="#copy">INSERT / CLIP COPY</a>）。</td></tr>
+    <tr><td class="k"><span class="key pill">履歴を消去</span></td><td>押すと<strong>すぐに</strong>履歴がすべて消えます。</td></tr>
+  </table></div>
+  <p class="warn">履歴を消去は確認なしで消え、元に戻せません。</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="basic">
+  <h2>基本の計算 <span class="keys"><span class="key eq">=</span></span></h2>
+  <p>式をまとめて入力し、<span class="key eq">=</span> を押すと答えが履歴に追加されます。掛け算・割り算が先に計算されます。</p>
+  <h3>答えの表示</h3>
+  <div class="tbl"><table>
+    <tr><th>ルール</th><th>例</th></tr>
+    <tr><td>小数点以下<strong>3桁</strong>まで（4桁目を四捨五入）</td><td><code>2/3</code> → <code>0.667…</code></td></tr>
+    <tr><td>続く場合は末尾に <strong>…</strong></td><td><code>1/3</code> → <code>0.333…</code></td></tr>
+    <tr><td>割り切れるときは … なし、末尾の 0 も省略</td><td><code>1/4</code> → <code>0.25</code></td></tr>
+    <tr><td>3桁ごとにカンマ</td><td><code>1234567/7</code> → <code>176,366.714…</code></td></tr>
+  </table></div>
+  <h3>便利な書き方</h3>
+  <ul>
+    <li><strong>掛け算の省略</strong>：<code>2(3+4)</code> → <code>14</code>、<code>2π</code> → <code>6.283…</code></li>
+    <li><strong>パーセント</strong>：<code>200×10%</code> → <code>20</code></li>
+    <li><strong>閉じかっこの省略</strong>：<code>(1+2</code> のまま <span class="key eq">=</span> を押しても自動で閉じて計算します。</li>
+    <li><span class="key tool">AC</span> は<strong>入力欄だけ</strong>を消します。履歴は残ります。</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="edit">
+  <h2>式の編集 <span class="keys"><span class="key tool">◀</span><span class="key tool">▶</span><span class="key tool">⌫</span></span></h2>
+  <div class="tbl"><table>
+    <tr><th>操作</th><th>動作</th></tr>
+    <tr><td class="k"><span class="key tool">◀</span> <span class="key tool">▶</span></td><td>カーソルを1つ移動します。分数・指数・ルートの枠の出入りにも使います。</td></tr>
+    <tr><td class="k">式をタップ</td><td>タップした位置にカーソルが移動します。式の途中に数字や記号を入れられます。</td></tr>
+    <tr><td class="k"><span class="key tool">⌫</span></td><td>カーソルの左を1つ消します。</td></tr>
+    <tr><td class="k"><span class="key tool">AC</span></td><td>入力欄を全部消します。</td></tr>
+  </table></div>
+</section>
+
+<!-- ======================================================= -->
+<section id="frac">
+  <h2>分数・指数・ルート <span class="keys"><span class="key op">/</span><span class="key sci">xʸ</span><span class="key sci">√</span></span></h2>
+  <p>押すと数式どおりの形で表示され、<strong><span class="key tool">▶</span> を押すまで枠の中</strong>に入力が続きます。<span class="key op">+</span> や <span class="key op">×</span> を押しても枠から出ないので、かっこなしで複数の項を入れられます。</p>
+
+  <div class="screen" aria-label="分数・指数・ルートの表示例">
+    <div class="inputline"><span class="frac"><span class="n">1</span><span class="d">2+2</span></span> + 2<sup class="s">1+2</sup> + <span class="root"><span>√</span><span class="rv">9+7</span></span><span class="caret"></span></div>
+  </div>
+
+  <div class="tbl"><table>
+    <tr><th>キー</th><th>表示</th><th>枠から出る</th></tr>
+    <tr><td class="k"><span class="key op">/</span></td><td>分数。<strong>分子は直前の数</strong>（またはかっこ・関数）、カーソルは分母へ</td><td><span class="key tool">▶</span></td></tr>
+    <tr><td class="k"><span class="key sci">xʸ</span></td><td>数字の右上に小さく入る（指数）</td><td><span class="key tool">▶</span></td></tr>
+    <tr><td class="k"><span class="key sci">√</span></td><td>数字の上に横線が伸びる</td><td><span class="key tool">▶</span></td></tr>
+  </table></div>
+
+  <h3>入力例</h3>
+  <p><span class="key">1</span><span class="key op">/</span><span class="key">2</span><span class="key op">+</span><span class="key">2</span><span class="key tool">▶</span><span class="key op">+</span><span class="key">1</span><span class="key eq">=</span> → <code>1.25</code>（1/(2+2)+1）</p>
+  <ul>
+    <li><strong>分子を複数の項にしたい</strong>ときは、先にかっこで囲みます：<code>(1+2)</code> → <span class="key op">/</span> → <code>3</code></li>
+    <li>点線の空の枠 <span class="box"></span> をタップすると、そこへカーソルが移動します。</li>
+    <li>枠のすぐ右で <span class="key tool">⌫</span> を押すと、枠の中へ戻ります。<strong>空の枠</strong>で押すと枠ごと消えます。</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="func">
+  <h2>関数と角度 <span class="keys"><span class="key sci">sin</span><span class="key sci">log</span><span class="key pill">DEG</span></span></h2>
+  <div class="tbl"><table>
+    <tr><th>キー</th><th>意味と例</th></tr>
+    <tr><td class="k"><span class="key sci">sin</span> <span class="key sci">cos</span> <span class="key sci">tan</span></td><td>三角関数（DEG のときは度）<br><code>sin(30)</code> → <code>0.5</code></td></tr>
+    <tr><td class="k"><span class="key sci">log</span></td><td><strong>常用対数</strong>（10 を何乗するとその数か）<br><code>log(1000)</code> → <code>3</code></td></tr>
+    <tr><td class="k"><span class="key sci">ln</span></td><td><strong>自然対数</strong>（e ≒ 2.718 を何乗するとその数か）<br><code>ln(1)</code> → <code>0</code></td></tr>
+    <tr><td class="k"><span class="key sci">π</span></td><td>円周率<br><code>2π</code> → <code>6.283…</code></td></tr>
+  </table></div>
+  <ul>
+    <li>関数は「<code>sin(</code>」のようにかっこが開いた状態で入ります。中身を入れて <span class="key">)</span> で閉じます（式の最後なら省略可）。</li>
+    <li><span class="key pill">DEG</span> を押すたびに <code>DEG</code>（度）⇄ <code>RAD</code>（ラジアン）が切り替わります。</li>
+    <li><code>log</code> と <code>ln</code> は正の数だけ、<code>√</code> は 0 以上の数だけ計算できます。</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="ans">
+  <h2>ans と履歴 <span class="keys"><span class="key sci">ans</span></span></h2>
+  <h3>ans（直前の答え）</h3>
+  <ul>
+    <li><span class="key sci">ans</span> は直前の答えです。単位つきの答えなら、単位も引き継ぎます。</li>
+    <li>入力欄が空のときに <span class="key op">+</span> <span class="key op">−</span> <span class="key op">×</span> <span class="key op">/</span> <span class="key sci">xʸ</span> <span class="key">%</span> を押すと、<strong>自動で ans から始まります</strong>。続けて計算したいときに便利です。</li>
+    <li>履歴には <code>ans</code> と表示されず、<strong>さかのぼった元の式</strong>で表示されます（例：<code>(2+3)×4−1</code>）。</li>
+  </ul>
+  <h3>履歴をタップ（INSERT のとき）</h3>
+  <div class="tbl"><table>
+    <tr><th>タップする場所</th><th>動作</th></tr>
+    <tr><td class="k"><strong>答え</strong></td><td>カーソル位置に答えを挿入（単位つきなら単位も）</td></tr>
+    <tr><td class="k"><strong>式</strong></td><td>カーソル位置に式を挿入。入力済みの式は残り、かっこで囲んで入ります（<code>7×</code> のあとに <code>2+3</code> をタップ → <code>7×(2+3)</code>）</td></tr>
+    <tr><td class="k"><strong>単位</strong>（点線付き）</td><td>同じ種類の単位の候補を表示。選ぶと変換結果が新しい行に入ります</td></tr>
+  </table></div>
+  <p class="note">方程式の行の式は、入力欄が空のときだけ呼び出せます。履歴は最大300件まで、この端末に保存されます。</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="copy">
+  <h2>INSERT / CLIP COPY <span class="keys"><span class="key pill">INSERT</span><span class="key pill on">CLIP COPY</span></span></h2>
+  <p>DEG の右のボタンを押すたびに <span class="key pill">INSERT</span> ⇄ <span class="key pill on">CLIP COPY</span> が切り替わり、履歴をタップしたときの動作が変わります。設定は保存されます。</p>
+  <div class="tbl"><table>
+    <tr><th>状態</th><th>履歴をタップしたときの動作</th></tr>
+    <tr><td class="k"><span class="key pill">INSERT</span></td><td><strong>入力欄へ挿入</strong>（コピーしない）</td></tr>
+    <tr><td class="k"><span class="key pill on">CLIP COPY</span></td><td><strong>クリップボードへコピー</strong>（入力欄は変わらない）</td></tr>
+  </table></div>
+  <h3>コピーされる内容（CLIP COPY のとき）</h3>
+  <div class="tbl"><table>
+    <tr><th>タップした場所</th><th>コピーされる文字</th></tr>
+    <tr><td><strong>答え</strong>：<code>15,000 mm</code></td><td><code>15000 mm</code></td></tr>
+    <tr><td><strong>答え</strong>：<code>0.333…</code></td><td><code>0.333333333333</code></td></tr>
+    <tr><td><strong>式</strong>：<code>5 m/min × 3 min</code></td><td><code>5m/min×3min = 15 m</code></td></tr>
+    <tr><td><strong>式</strong>：<code>2X+3 = 7</code></td><td><code>2X+3=7 → X = 2</code></td></tr>
+  </table></div>
+  <ul>
+    <li>数値は<strong>カンマなし・有効数字12桁・半角マイナス</strong>なので、Excel などにそのまま貼り付けられます。</li>
+    <li>式をコピーすると、<strong>式と答えの両方</strong>が入ります。</li>
+    <li>コピーできたときは表示が出ず、タップした行が一瞬ハイライトします。失敗したときだけ「Copy failed」と表示されます。</li>
+    <li>コピーした「式 = 答え」をこの電卓に貼り付けると、<strong>式の部分だけ</strong>が入ります。</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="eq">
+  <h2>方程式（X を求める） <span class="keys"><span class="key sci"><span class="xv">X</span></span></span></h2>
+  <p><span class="key sci"><span class="xv">X</span></span> を含む式を入れると、<span class="key eq">=</span> ボタンの表示が変わり、左辺・右辺の順に入力して X を求められます。</p>
+  <ol class="steps">
+    <li>X を含む左辺を入力します：<span class="key">2</span><span class="key sci"><span class="xv">X</span></span><span class="key op">+</span><span class="key">3</span></li>
+    <li>ボタンが <span class="key eq rhs">= 右辺へ</span> に変わるので押します。式に <code>=</code> が入ります。</li>
+    <li>右辺を入力します：<span class="key">7</span></li>
+    <li>ボタンが <span class="key eq solve"><span class="xv" style="color:inherit">X</span>&nbsp;を求める</span> に変わるので押します。</li>
+    <li>履歴に <code>X = 2</code> が表示されます。</li>
+  </ol>
+  <div class="tbl"><table>
+    <tr><th>方程式</th><th>結果</th></tr>
+    <tr><td><code>2X+3 = 7</code></td><td><code>X = 2</code></td></tr>
+    <tr><td><code>X² = 9</code></td><td><code>X = −3, 3</code>（解が複数ならすべて）</td></tr>
+    <tr><td><code>√X = 3</code></td><td><code>X = 9</code></td></tr>
+    <tr><td><code>2^X = 1024</code></td><td><code>X = 10</code></td></tr>
+    <tr><td><code>sin(X) = 0.5</code>（DEG）</td><td><code>X = −330, −210, 30, 150, 390, …</code></td></tr>
+    <tr><td><code>X+1 = X+2</code></td><td><code>解なし</code></td></tr>
+    <tr><td><code>X+1 = X+1</code></td><td><code>すべての X</code></td></tr>
+  </table></div>
+  <ul>
+    <li>解が多いときは、0 に近い順に最大5個を表示します。</li>
+    <li>求めた X は ans に入ります（解が複数なら一番小さいもの）。</li>
+    <li>1次式は正確に解き、それ以外は ±1,000,000 の範囲で数値的に探します。</li>
+    <li><code>=</code> を <span class="key tool">⌫</span> で消すと、<span class="key eq rhs">= 右辺へ</span> の状態に戻ります。</li>
+  </ul>
+  <p class="warn">方程式では単位は使えません。</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="unit">
+  <h2>単位の計算と変換 <span class="keys"><span class="key tool">単位</span><span class="key">→</span></span></h2>
+  <p><span class="key tool">単位</span> を押すと、関数の2段が<strong>単位のボタン</strong>に切り替わり、<span class="key">%</span> の位置が <span class="key">→</span>（変換）になります。もう一度押すと元に戻ります。</p>
+  <div class="tbl"><table>
+    <tr><th>種類</th><th>単位</th></tr>
+    <tr><td class="k"><span class="key cat">速度</span></td><td><span class="u">mm/sec</span><span class="u">m/sec</span><span class="u">m/min</span><span class="u">m/h</span><span class="u">km/h</span></td></tr>
+    <tr><td class="k"><span class="key cat">時間</span></td><td><span class="u">msec</span><span class="u">sec</span><span class="u">min</span><span class="u">h</span></td></tr>
+    <tr><td class="k"><span class="key cat">距離</span></td><td><span class="u">μm</span><span class="u">mm</span><span class="u">cm</span><span class="u">m</span><span class="u">km</span></td></tr>
+    <tr><td class="k"><span class="key cat">質量</span></td><td><span class="u">g</span><span class="u">kg</span><span class="u">t</span><span class="u">N</span></td></tr>
+  </table></div>
+
+  <h3>式の中で単位を使う</h3>
+  <p>数字の直後に単位キーを押します：<span class="key">5</span><span class="key u">m/min</span><span class="key op">×</span><span class="key">3</span><span class="key u">min</span><span class="key eq">=</span> → <code>15 m</code></p>
+  <div class="tbl"><table>
+    <tr><th>計算と結果</th><th>答えの単位の決まり方</th></tr>
+    <tr><td><code>5 m/min × 3 min</code><br>→ <code>15 m</code></td><td>単位が約分される</td></tr>
+    <tr><td><code>15 m ÷ 3 min</code><br>→ <code>5 m/min</code></td><td>式の単位を組み合わせる</td></tr>
+    <tr><td><code>36 m/h × 2 h</code><br>→ <code>72 m</code></td><td>単位が約分される</td></tr>
+    <tr><td><code>100 mm + 2 m</code><br>→ <code>2,100 mm</code></td><td>足し算・引き算は<strong>左側の単位</strong>にそろう</td></tr>
+    <tr><td><code>2 m × 3 m</code><br>→ <code>6 m²</code></td><td>当てはまる単位がなければ組み合わせて表示</td></tr>
+    <tr><td><code>10 kg × 9.8 m/sec ÷ sec</code><br>→ <code>98 N</code></td><td>N になる組み合わせは N で表示</td></tr>
+  </table></div>
+
+  <h3>答えを別の単位に変換する</h3>
+  <ul>
+    <li><span class="key">→</span> キー：<span class="key">1</span><span class="key">5</span><span class="key u">m</span><span class="key">→</span><span class="key u">mm</span><span class="key eq">=</span> → <code>15,000 mm</code></li>
+    <li>入力欄が空のときに <span class="key">→</span> を押すと、<strong>直前の答え</strong>を変換します。</li>
+    <li>履歴の答えの<strong>単位の部分（点線付き）</strong>をタップ → 候補から選ぶと、変換結果が新しい行に入ります。</li>
+  </ul>
+
+  <h3>kg と N の換算</h3>
+  <p>kg を「kg重」とみなし、<code>1 kg = 9.80665 N</code> で換算します。</p>
+  <div class="tbl"><table>
+    <tr><th>入力</th><th>結果</th></tr>
+    <tr><td><code>5 kg → N</code></td><td><code>49.033… N</code></td></tr>
+    <tr><td><code>100 N → kg</code></td><td><code>10.197… kg</code></td></tr>
+  </table></div>
+  <p class="warn">kg と N は → での換算だけ。足し算・引き算で混ぜることはできません。</p>
+  <p class="note">種類の違う単位の足し算（<code>3 m + 2 kg</code>）、sin・log などの中の単位、違う種類への変換（<code>5 m → kg</code>）はエラーになります。</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="kb">
+  <h2>パソコンのキーボード</h2>
+  <div class="tbl"><table>
+    <tr><th>キー</th><th>動作</th></tr>
+    <tr><td class="k"><code>0</code>〜<code>9</code>、テンキー</td><td>数字</td></tr>
+    <tr><td class="k"><code>+</code> <code>-</code> <code>*</code> <code>/</code></td><td>＋ − × 分数</td></tr>
+    <tr><td class="k"><code>^</code> <code>%</code> <code>(</code> <code>)</code> <code>.</code></td><td>指数・パーセント・かっこ・小数点</td></tr>
+    <tr><td class="k"><code>x</code></td><td>変数 X</td></tr>
+    <tr><td class="k"><code>Enter</code> / <code>=</code></td><td>＝（計算・右辺へ・X を求める）</td></tr>
+    <tr><td class="k"><code>Esc</code></td><td>入力欄を全部消す（AC）</td></tr>
+    <tr><td class="k"><code>Backspace</code> / <code>Delete</code></td><td>カーソルの左 / 右を1つ消す</td></tr>
+    <tr><td class="k"><code>←</code> <code>→</code> / <code>Home</code> <code>End</code></td><td>カーソル移動 / 式の先頭・末尾へ</td></tr>
+    <tr><td class="k"><code>↑</code> <code>↓</code></td><td>過去の式を呼び出す（<code>↓</code> で入力途中の式に戻る）</td></tr>
+    <tr><td class="k"><code>-&gt;</code> または <code>&gt;</code></td><td>単位の変換（→）</td></tr>
+    <tr><td class="k"><code>Ctrl</code>+<code>C</code></td><td>入力中の式をコピー。入力が空なら直前の答え（単位つき）</td></tr>
+    <tr><td class="k"><code>Ctrl</code>+<code>V</code></td><td>コピーした式を貼り付け</td></tr>
+  </table></div>
+  <h3>英字で入力するもの</h3>
+  <div class="tbl"><table>
+    <tr><th>入力</th><th>結果</th></tr>
+    <tr><td><code>sin</code> <code>cos</code> <code>tan</code> <code>log</code> <code>ln</code> <code>sqrt</code></td><td>関数・√</td></tr>
+    <tr><td><code>pi</code> / <code>ans</code></td><td>π / 直前の答え</td></tr>
+    <tr><td><code>5m/min*3min</code></td><td><code>15 m</code>（単位はそのまま打つ）</td></tr>
+    <tr><td><code>15m-&gt;mm</code></td><td><code>15,000 mm</code></td></tr>
+    <tr><td><code>um</code></td><td><code>μm</code></td></tr>
+  </table></div>
+  <ul>
+    <li><code>m</code> と <code>mm</code>・<code>min</code>・<code>m/min</code> のように<strong>続きがある単位</strong>は、次に数字や記号を押した時点で確定します。</li>
+    <li>旧表記の <code>s</code> <code>ms</code> <code>m/s</code> も受け付け、<code>sec</code> <code>msec</code> <code>m/sec</code> に変換します。</li>
+    <li>日本語入力（<code>あ</code>）のままでも数字・記号は入ります。記号がずれる場合は <code>半角/全角</code> キーで <code>A</code> に切り替えてください。</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="install">
+  <h2>ホーム画面に追加・更新</h2>
+  <p>公開ページをホーム画面に追加すると、アプリのように起動できます。<strong>一度開けば、以降は圏外でも使えます。</strong></p>
+  <p><a class="url" href="https://yoshiokuroda96.github.io/calculator/"><code>https://yoshiokuroda96.github.io/calculator/</code></a></p>
+  <div class="tbl"><table>
+    <tr><th>端末</th><th>手順</th></tr>
+    <tr><td class="k"><strong>iPhone</strong></td><td>Safari で開く → 共有ボタン → <strong>ホーム画面に追加</strong></td></tr>
+    <tr><td class="k"><strong>Android</strong></td><td>Chrome で開く → <strong>︙</strong> → <strong>ホーム画面に追加</strong>（またはアプリをインストール）</td></tr>
+  </table></div>
+  <h3>新しい版にするには</h3>
+  <ul>
+    <li><strong>スマホ</strong>：アプリを完全に閉じて開き直します。変わらなければもう一度。</li>
+    <li><strong>パソコン</strong>：<code>Ctrl</code>+<code>Shift</code>+<code>R</code> で再読み込みします。</li>
+  </ul>
+  <p class="note">履歴と設定（DEG・INSERT / CLIP COPY・単位キーの状態）は、その端末のブラウザだけに保存されます。ブラウザのデータを消すと、履歴も消えます。</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="trouble">
+  <h2>困ったとき</h2>
+  <div class="tbl"><table>
+    <tr><th>表示</th><th>原因と対処</th></tr>
+    <tr><td>0 で割ることはできません</td><td>分母が 0 になっています。</td></tr>
+    <tr><td>式が途中で終わっています</td><td><code>3+</code> のように記号で終わっています。続きの数を入れてください。</td></tr>
+    <tr><td>かっこの対応が正しくありません</td><td><code>)</code> が多すぎます。不要な <code>)</code> を消してください。</td></tr>
+    <tr><td>単位の種類が違うため、足し算・引き算できません</td><td><code>3 m + 2 kg</code> のように種類の違う単位を足しています。</td></tr>
+    <tr><td>kg と N は足し算・引き算できません</td><td><span class="key">→</span> で換算してから計算してください。</td></tr>
+    <tr><td>「N」は「m」に変換できません</td><td>違う種類の単位へは変換できません。</td></tr>
+    <tr><td>sin・cos・tan・log・ln の中では単位は使えません</td><td>関数の中の単位を外してください。</td></tr>
+    <tr><td>方程式では単位は使えません</td><td>X の方程式は単位なしで入力してください。</td></tr>
+    <tr><td>方程式は入力欄が空のときだけ呼び出せます</td><td><span class="key tool">AC</span> で入力欄を空にしてから、履歴の式をタップしてください。</td></tr>
+    <tr><td>log は正の数だけ計算できます</td><td>log・ln の中を 0 より大きい数にしてください。</td></tr>
+    <tr><td>tan の値が定義されない角度です</td><td><code>tan(90)</code>（DEG）などは計算できません。</td></tr>
+    <tr><td>「○○」は使えません</td><td>キーボードで、この電卓にない文字や単位を入力しています。</td></tr>
+    <tr><td>Copy failed</td><td>ブラウザの制限でコピーできませんでした。公開ページ（またはホーム画面のアプリ）から使ってください。</td></tr>
+  </table></div>
+  <ul>
+    <li><strong>キーボードが効かない</strong>：電卓の画面を一度クリックしてから入力してください。</li>
+    <li><strong>新しい機能が出てこない</strong>：<a href="#install">新しい版にするには</a>の手順で開き直してください。</li>
+  </ul>
+</section>
+
+<footer>
+  <p>この使い方は、電卓 v1.8.2（calc-v13）の機能に合わせています。</p>
+</footer>
+</main>
+</body>
+</html>

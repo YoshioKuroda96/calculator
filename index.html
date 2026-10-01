@@ -192,7 +192,7 @@ body:focus{outline:none}
     <div class="preview" id="preview" aria-live="polite"></div>
   </div>
 
-  <div class="modebar"><button class="linkbtn" id="degBtn" aria-label="角度の単位を切り替える">DEG</button><button class="linkbtn" id="copyBtn" aria-pressed="false" aria-label="COPY mode (OFF: insert into input, ON: copy to clipboard)">COPY OFF</button></div>
+  <div class="modebar"><button class="linkbtn" id="degBtn" aria-label="角度の単位を切り替える">DEG</button><button class="linkbtn" id="copyBtn" aria-pressed="false" aria-label="Tap action for history: INSERT (insert into input) or CLIP COPY (copy to clipboard)">INSERT</button></div>
 
   <div class="pad" id="pad">
     <button class="k tool" data-k="AC" aria-label="入力を消す">AC</button>
@@ -941,7 +941,7 @@ body:focus{outline:none}
   document.getElementById('clearHist').addEventListener('click',()=>{ S.history=[]; convOpen=null; save(); renderTape(); });
   degBtn.addEventListener('click',()=>press('DEG'));
   const copyBtn=document.getElementById('copyBtn');
-  function renderCopyBtn(){ copyBtn.textContent='COPY '+(S.copyMode?'ON':'OFF'); copyBtn.classList.toggle('on',!!S.copyMode); copyBtn.setAttribute('aria-pressed',S.copyMode?'true':'false'); }
+  function renderCopyBtn(){ copyBtn.textContent=S.copyMode?'CLIP COPY':'INSERT'; copyBtn.classList.toggle('on',!!S.copyMode); copyBtn.setAttribute('aria-pressed',S.copyMode?'true':'false'); }
   copyBtn.addEventListener('click',()=>{ S.copyMode=!S.copyMode; save(); renderCopyBtn(); });
   renderCopyBtn();
 
