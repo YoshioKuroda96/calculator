@@ -144,6 +144,7 @@ body{
 .k.eq.st-rhs:active{background:var(--op-press)}
 .k.eq.st-solve{background:var(--eq); color:var(--eq-text); box-shadow:0 0 0 2px var(--op) inset}
 .k.eq:active,.k.eq.hit{background:var(--eq-press)}
+body:focus{outline:none}
 .k:focus-visible,.linkbtn:focus-visible{outline:3px solid var(--eq); outline-offset:2px}
 @media (max-height:700px){ .k{height:46px} .k.sci{height:36px} .k.tool{height:34px} .current{min-height:80px} .input{font-size:28px} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} .caret{animation:none} }
@@ -430,7 +431,7 @@ body{
       const e=document.createElement('div'); e.className='entry';
       const ex=document.createElement('div'); ex.className='ex'; renderExpr(expandAnsTokens(h.t,idx-1),ex); if(!h.sol) ex.appendChild(document.createTextNode(' ='));
       const rs=document.createElement('div'); rs.className='rs'; rs.textContent=h.sol?solText(h.sol):fmt(h.v);
-      ex.addEventListener('click',()=>{ const t=expandAnsTokens(h.t,idx-1); S.tokens=[...t]; for(let i=openCount(t);i>0;i--) S.tokens.push(')'); S.cursor=S.tokens.length; renderInput(); });
+      ex.addEventListener('click',()=>insertHistoryExpr(h,idx));
       rs.addEventListener('click',()=>{ insert(valueTokens(h.v)); e.classList.add('flash'); setTimeout(()=>e.classList.remove('flash'),180); });
       e.append(ex, rs);
       tapeInner.appendChild(e);
@@ -463,6 +464,21 @@ body{
   }
 
   // ---- 入力操作 ----
+  // 履歴の式を、入力済みの式を残したままカーソル位置に挿入する（ans は展開済みの式で入る）
+  function insertHistoryExpr(h,idx){
+    const t=expandAnsTokens(h.t,idx-1);
+    for(let n=openCount(t);n>0;n--) t.push(')');
+    if(!S.tokens.length){                       // 入力が空ならそのまま入れる
+      S.tokens=[...t]; S.cursor=t.length; renderInput(); return;
+    }
+    if(t.includes('=')){                        // 方程式は途中に挿入できない
+      previewEl.classList.remove('hint'); previewEl.textContent='方程式は入力欄が空のときだけ呼び出せます'; previewEl.classList.add('err'); return;
+    }
+    // 入力済みの式の途中に入れても計算順序が変わらないよう、かっこで囲む
+    const single=t.length===1 && !/^[0-9.]$/.test(t[0]);
+    const ins=single?t:['(',...t,')'];
+    S.tokens.splice(S.cursor,0,...ins); S.cursor+=ins.length; renderInput();
+  }
   function insert(arr){
     if(!S.tokens.length && ['+','−','×','÷','^','%','÷(','^('].includes(arr[0]) && S.history.length) arr=['ans',...arr];
     S.tokens.splice(S.cursor,0,...arr); S.cursor+=arr.length; renderInput();
@@ -610,12 +626,13 @@ body{
   degBtn.addEventListener('click',()=>press('DEG'));
 
   // ===== キーボード入力（PC用） =====
+  // 日本語IMEがオンのとき、Windowsでは e.key が 'Process' になり数字や記号が取れないことがある。
+  // そのため e.code（物理キー）からも入力を判定する。全角文字で届く場合も半角に直す。
   const KEYMAP={
-    '+':'+','-':'−','*':'×','/':'÷','^':'^','%':'%','(':'(',')':')','.':'.',',':'.',
-    'x':'X','X':'X','=':'=','Enter':'=','Backspace':'BS','Escape':'AC',
-    'ArrowLeft':'LEFT','ArrowRight':'RIGHT'
+    '+':'+','-':'−','−':'−','*':'×','×':'×','/':'÷','÷':'÷','^':'^','%':'%','(':'(',')':')','.':'.',',':'.','。':'.',
+    '=':'=','Enter':'=','Backspace':'BS','Escape':'AC','ArrowLeft':'LEFT','ArrowRight':'RIGHT'
   };
-  // 英字で関数名を打つと入力される（例：s→i→n で sin）
+  // 英字で関数名を打つと入力される（例：s→i→n で sin）。x は変数 X
   const WORDS={sin:'sin(',cos:'cos(',tan:'tan(',log:'log(',ln:'ln(',sqrt:'√(',pi:'π',ans:'ans'};
   let wordBuf='', wordTimer=null;
   const clearWord=()=>{ wordBuf=''; clearTimeout(wordTimer); if(previewEl.classList.contains('hint')){ previewEl.textContent=''; previewEl.classList.remove('hint'); } };
@@ -631,34 +648,75 @@ body{
     return true;
   }
   function flashKey(k){ const b=document.querySelector(`[data-k="${CSS.escape(k)}"]`); if(b){ b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),90); } }
-  // 前方削除（Delete）
   function forwardDelete(){ if(S.cursor<S.tokens.length){ S.cursor++; press('BS'); } }
-  // ↑↓：過去の式を呼び出す
-  let histPos=-1;
+
+  // --- 物理キー(e.code)から文字を求める（IMEオン時の保険） ---
+  // JIS配列／US配列で記号の位置が違うので、通常入力で覚えた対応を優先し、無ければ既定の配列表を使う
+  const learned={};
+  let isJIS=/^ja/i.test(navigator.language||'');
+  try{ if(navigator.keyboard&&navigator.keyboard.getLayoutMap) navigator.keyboard.getLayoutMap().then(m=>{ const q=m.get('Equal'); if(q==='^') isJIS=true; else if(q==='=') isJIS=false; }).catch(()=>{}); }catch(e){}
+  const LAYOUT_JIS={'Minus|0':'-','Minus|1':'=','Equal|0':'^','Semicolon|1':'+','Quote|1':'*','Slash|0':'/','Period|0':'.','Comma|0':',','Digit5|1':'%','Digit8|1':'(','Digit9|1':')'};
+  const LAYOUT_US ={'Minus|0':'-','Equal|0':'=','Equal|1':'+','Slash|0':'/','Period|0':'.','Comma|0':',','Digit5|1':'%','Digit6|1':'^','Digit8|1':'*','Digit9|1':'(','Digit0|1':')'};
+  const NAMED_CODE={Enter:'Enter',NumpadEnter:'Enter',Backspace:'Backspace',Delete:'Delete',Escape:'Escape',ArrowLeft:'ArrowLeft',ArrowRight:'ArrowRight',ArrowUp:'ArrowUp',ArrowDown:'ArrowDown',Home:'Home',End:'End'};
+  const NUMPAD_CODE={NumpadAdd:'+',NumpadSubtract:'-',NumpadMultiply:'*',NumpadDivide:'/',NumpadDecimal:'.',NumpadEqual:'='};
+  function keyFromCode(e){
+    const c=e.code||'', sh=e.shiftKey?1:0;
+    if(NAMED_CODE[c]) return NAMED_CODE[c];
+    if(/^Numpad[0-9]$/.test(c)) return c.slice(6);
+    if(NUMPAD_CODE[c]) return NUMPAD_CODE[c];
+    if(/^Digit[0-9]$/.test(c) && !sh) return c.slice(5);
+    if(/^Key[A-Z]$/.test(c)) return c.slice(3).toLowerCase();
+    return learned[c+'|'+sh] || (isJIS?LAYOUT_JIS:LAYOUT_US)[c+'|'+sh] || null;
+  }
+  // --- 履歴の呼び出し（↑↓）。入力途中の式は ↓ で戻れるよう保存する ---
+  let histPos=-1, draft=null;
+  const endRecall=()=>{ histPos=-1; draft=null; };
   function recall(dir){
     if(!S.history.length) return;
-    histPos = histPos<0 ? (dir<0?S.history.length-1:-1) : histPos+dir;
-    if(histPos>=S.history.length){ histPos=-1; S.tokens=[]; S.cursor=0; renderInput(); return; }
-    if(histPos<0){ histPos=0; }
+    if(histPos<0){
+      if(dir>0) return;
+      draft={tokens:[...S.tokens],cursor:S.cursor}; histPos=S.history.length-1;
+    } else histPos+=dir;
+    if(histPos>=S.history.length){
+      const d=draft; endRecall(); S.tokens=d?d.tokens:[]; S.cursor=d?d.cursor:0; renderInput(); return;
+    }
+    if(histPos<0) histPos=0;
     const t=expandAnsTokens(S.history[histPos].t,histPos-1); S.tokens=[...t]; for(let i=openCount(t);i>0;i--) S.tokens.push(')');
     S.cursor=S.tokens.length; renderInput();
   }
 
-  document.addEventListener('keydown',e=>{
-    if(e.metaKey||e.ctrlKey||e.altKey) return;           // コピー・貼り付けなどはブラウザに任せる
-    if(e.target.closest&&e.target.closest('input,textarea')) return;
-    const key=e.key;
-    if(/^[0-9]$/.test(key)){ e.preventDefault(); clearWord(); histPos=-1; press(key); flashKey(key); return; }
+  function handleKeydown(e){
+    if(e.metaKey||e.ctrlKey||e.altKey) return;            // コピー・貼り付けなどはブラウザに任せる
+    if(e.target&&e.target.closest&&e.target.closest('input,textarea,[contenteditable="true"]')) return;
+    let key=e.key||'';
+    const ime=['Process','Unidentified','Dead'].includes(key)||(e.isComposing&&key.length!==1);
+    if(ime){ key=keyFromCode(e); if(!key) return; }
+    else{
+      key=key.length>1?key:key.normalize('NFKC');         // 全角の１ ＋ （ ）などを半角に
+      if(key.length===1&&e.code) learned[e.code+'|'+(e.shiftKey?1:0)]=key;
+    }
+    if(/^[0-9]$/.test(key)){ e.preventDefault(); clearWord(); endRecall(); press(key); flashKey(key); return; }
     if(key==='Delete'){ e.preventDefault(); forwardDelete(); return; }
     if(key==='Home'){ e.preventDefault(); S.cursor=0; renderInput(); return; }
     if(key==='End'){ e.preventDefault(); S.cursor=S.tokens.length; renderInput(); return; }
     if(key==='ArrowUp'){ e.preventDefault(); recall(-1); return; }
     if(key==='ArrowDown'){ e.preventDefault(); recall(1); return; }
-    if(/^[a-zA-Z]$/.test(key) && key.toLowerCase()!=='x'){ if(typeLetter(key)) e.preventDefault(); return; }
+    if(/^[a-zA-Z]$/.test(key)){
+      if(key.toLowerCase()==='x'){ e.preventDefault(); clearWord(); endRecall(); press('X'); flashKey('X'); return; }
+      if(typeLetter(key)) e.preventDefault();
+      return;
+    }
     const k=KEYMAP[key]; if(!k) return;
-    e.preventDefault(); clearWord(); if(k!=='LEFT'&&k!=='RIGHT') histPos=-1;
+    e.preventDefault(); clearWord(); if(k!=='LEFT'&&k!=='RIGHT') endRecall();
     press(k); flashKey(k);
-  });
+  }
+  document.addEventListener('keydown',handleKeydown);
+
+  // --- キー入力が確実にこのページへ届くようにする（別タブ・iframe内・フォーカス外れ対策） ---
+  const grabFocus=()=>{ try{ window.focus(); }catch(e){} };
+  document.body.tabIndex=-1;
+  window.addEventListener('load',()=>{ grabFocus(); try{ document.body.focus({preventScroll:true}); }catch(e){} });
+  document.addEventListener('pointerdown',grabFocus,true);
 
   // ===== 貼り付け（Ctrl+V / ⌘+V）：文字の式を取り込む =====
   function parseText(str){
