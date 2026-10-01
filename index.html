@@ -409,13 +409,28 @@ body{
   const eqKey=document.getElementById('eqKey');
   const degBtn=document.getElementById('degBtn');
 
+  // 履歴の式に含まれる ans を、その時点までの履歴をさかのぼって実際の式に展開する（表示専用）
+  function expandAnsTokens(tokens, beforeIdx){
+    const out=[];
+    for(const t of tokens){
+      if(t==='ans'){
+        if(beforeIdx>=0){
+          const inner=expandAnsTokens(S.history[beforeIdx].t, beforeIdx-1);
+          for(let n=openCount(inner);n>0;n--) inner.push(')');   // 閉じ忘れのかっこを補ってから埋め込む
+          if(inner.every(t=>/^[0-9.]$/.test(t))) out.push(...inner); else out.push('(',...inner,')');
+        } else out.push('0');
+      } else out.push(t);
+    }
+    return out;
+  }
+
   function renderTape(){
     tapeInner.innerHTML='';
     S.history.forEach((h,idx)=>{
       const e=document.createElement('div'); e.className='entry';
-      const ex=document.createElement('div'); ex.className='ex'; renderExpr(h.t,ex); if(!h.sol) ex.appendChild(document.createTextNode(' ='));
+      const ex=document.createElement('div'); ex.className='ex'; renderExpr(expandAnsTokens(h.t,idx-1),ex); if(!h.sol) ex.appendChild(document.createTextNode(' ='));
       const rs=document.createElement('div'); rs.className='rs'; rs.textContent=h.sol?solText(h.sol):fmt(h.v);
-      ex.addEventListener('click',()=>{ S.tokens=[...h.t]; for(let i=openCount(h.t);i>0;i--) S.tokens.push(')'); S.cursor=S.tokens.length; renderInput(); });
+      ex.addEventListener('click',()=>{ const t=expandAnsTokens(h.t,idx-1); S.tokens=[...t]; for(let i=openCount(t);i>0;i--) S.tokens.push(')'); S.cursor=S.tokens.length; renderInput(); });
       rs.addEventListener('click',()=>{ insert(valueTokens(h.v)); e.classList.add('flash'); setTimeout(()=>e.classList.remove('flash'),180); });
       e.append(ex, rs);
       tapeInner.appendChild(e);
@@ -449,7 +464,7 @@ body{
 
   // ---- 入力操作 ----
   function insert(arr){
-    if(!S.tokens.length && ['+','×','÷','^','%','÷(','^('].includes(arr[0]) && S.history.length) arr=['ans',...arr];
+    if(!S.tokens.length && ['+','−','×','÷','^','%','÷(','^('].includes(arr[0]) && S.history.length) arr=['ans',...arr];
     S.tokens.splice(S.cursor,0,...arr); S.cursor+=arr.length; renderInput();
   }
   function matchOpen(i){ let d=0; for(let j=i;j>=0;j--){ const t=S.tokens[j]; if(t===')') d++; else if(t.endsWith('(')){ d--; if(d===0) return j; } } return -1; }
@@ -594,14 +609,94 @@ body{
   document.getElementById('clearHist').addEventListener('click',()=>{ S.history=[]; save(); renderTape(); });
   degBtn.addEventListener('click',()=>press('DEG'));
 
-  // キーボード（PC用）
-  const map={'*':'×','x':'×','X':'X','/':'÷','-':'−','+':'+','^':'^','Enter':'=','=':'=','Backspace':'BS','Escape':'AC','%':'%','(':'(',')':')','.':'.','ArrowLeft':'LEFT','ArrowRight':'RIGHT','p':'π','a':'ans','r':'√(','s':'sin(','c':'cos(','t':'tan(','l':'log(','n':'ln('};
+  // ===== キーボード入力（PC用） =====
+  const KEYMAP={
+    '+':'+','-':'−','*':'×','/':'÷','^':'^','%':'%','(':'(',')':')','.':'.',',':'.',
+    'x':'X','X':'X','=':'=','Enter':'=','Backspace':'BS','Escape':'AC',
+    'ArrowLeft':'LEFT','ArrowRight':'RIGHT'
+  };
+  // 英字で関数名を打つと入力される（例：s→i→n で sin）
+  const WORDS={sin:'sin(',cos:'cos(',tan:'tan(',log:'log(',ln:'ln(',sqrt:'√(',pi:'π',ans:'ans'};
+  let wordBuf='', wordTimer=null;
+  const clearWord=()=>{ wordBuf=''; clearTimeout(wordTimer); if(previewEl.classList.contains('hint')){ previewEl.textContent=''; previewEl.classList.remove('hint'); } };
+  function typeLetter(ch){
+    const next=wordBuf+ch.toLowerCase();
+    if(!Object.keys(WORDS).some(w=>w.startsWith(next))){ clearWord(); if(!Object.keys(WORDS).some(w=>w.startsWith(ch.toLowerCase()))) return false; return typeLetter(ch); }
+    wordBuf=next;
+    if(WORDS[wordBuf] && !Object.keys(WORDS).some(w=>w!==wordBuf&&w.startsWith(wordBuf))){
+      const k=wordBuf; clearWord(); press(WORDS[k]); flashKey(WORDS[k]); return true;
+    }
+    previewEl.classList.remove('err'); previewEl.classList.add('hint'); previewEl.textContent=wordBuf+'…';
+    clearTimeout(wordTimer); wordTimer=setTimeout(clearWord,1500);
+    return true;
+  }
+  function flashKey(k){ const b=document.querySelector(`[data-k="${CSS.escape(k)}"]`); if(b){ b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),90); } }
+  // 前方削除（Delete）
+  function forwardDelete(){ if(S.cursor<S.tokens.length){ S.cursor++; press('BS'); } }
+  // ↑↓：過去の式を呼び出す
+  let histPos=-1;
+  function recall(dir){
+    if(!S.history.length) return;
+    histPos = histPos<0 ? (dir<0?S.history.length-1:-1) : histPos+dir;
+    if(histPos>=S.history.length){ histPos=-1; S.tokens=[]; S.cursor=0; renderInput(); return; }
+    if(histPos<0){ histPos=0; }
+    const t=expandAnsTokens(S.history[histPos].t,histPos-1); S.tokens=[...t]; for(let i=openCount(t);i>0;i--) S.tokens.push(')');
+    S.cursor=S.tokens.length; renderInput();
+  }
+
   document.addEventListener('keydown',e=>{
-    if(e.metaKey||e.ctrlKey) return;
-    const k=/^[0-9]$/.test(e.key)?e.key:map[e.key]; if(!k) return;
-    e.preventDefault(); press(k);
-    const b=document.querySelector(`[data-k="${CSS.escape(k)}"]`);
-    if(b){ b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),90); }
+    if(e.metaKey||e.ctrlKey||e.altKey) return;           // コピー・貼り付けなどはブラウザに任せる
+    if(e.target.closest&&e.target.closest('input,textarea')) return;
+    const key=e.key;
+    if(/^[0-9]$/.test(key)){ e.preventDefault(); clearWord(); histPos=-1; press(key); flashKey(key); return; }
+    if(key==='Delete'){ e.preventDefault(); forwardDelete(); return; }
+    if(key==='Home'){ e.preventDefault(); S.cursor=0; renderInput(); return; }
+    if(key==='End'){ e.preventDefault(); S.cursor=S.tokens.length; renderInput(); return; }
+    if(key==='ArrowUp'){ e.preventDefault(); recall(-1); return; }
+    if(key==='ArrowDown'){ e.preventDefault(); recall(1); return; }
+    if(/^[a-zA-Z]$/.test(key) && key.toLowerCase()!=='x'){ if(typeLetter(key)) e.preventDefault(); return; }
+    const k=KEYMAP[key]; if(!k) return;
+    e.preventDefault(); clearWord(); if(k!=='LEFT'&&k!=='RIGHT') histPos=-1;
+    press(k); flashKey(k);
+  });
+
+  // ===== 貼り付け（Ctrl+V / ⌘+V）：文字の式を取り込む =====
+  function parseText(str){
+    str=str.normalize('NFKC'); const out=[]; let i=0;
+    const MAP={'+':'+','-':'−','−':'−','*':'×','×':'×','/':'÷','÷':'÷','^':'^','%':'%','(':'(',')':')','=':'='};
+    const FN={sin:'sin(',cos:'cos(',tan:'tan(',log:'log(',ln:'ln(',sqrt:'√('};
+    while(i<str.length){
+      const c=str[i];
+      if(/\s/.test(c)||c===','){ i++; continue; }
+      if(/[0-9.]/.test(c)){ out.push(c); i++; continue; }
+      if(MAP[c]){ out.push(MAP[c]); i++; continue; }
+      if(c==='π'){ out.push('π'); i++; continue; }
+      if(c==='√'){ out.push('√('); i++; if(str[i]==='(') i++; continue; }
+      const m=str.slice(i).match(/^[A-Za-z]+/);
+      if(m){
+        const w=m[0].toLowerCase(); i+=m[0].length;
+        if(FN[w]){ out.push(FN[w]); if(str[i]==='(') i++; continue; }
+        if(w==='pi'){ out.push('π'); continue; }
+        if(w==='ans'){ out.push('ans'); continue; }
+        if(w==='x'){ out.push('X'); continue; }
+        throw new Error('「'+m[0]+'」は使えません');
+      }
+      throw new Error('「'+c+'」は使えない文字です');
+    }
+    return out;
+  }
+  document.addEventListener('paste',e=>{
+    const text=(e.clipboardData||window.clipboardData).getData('text'); if(!text) return;
+    e.preventDefault();
+    try{ const t=parseText(text); if(t.filter(x=>x==='=').length>1) throw new Error('= は1つだけ使えます'); S.tokens.splice(S.cursor,0,...t); S.cursor+=t.length; renderInput(); }
+    catch(err){ previewEl.classList.remove('hint'); previewEl.textContent='貼り付けできません：'+err.message; previewEl.classList.add('err'); }
+  });
+  // ===== コピー（Ctrl+C / ⌘+C）：入力中の式、空なら直前の答え =====
+  document.addEventListener('copy',e=>{
+    const sel=window.getSelection&&String(window.getSelection()); if(sel) return;
+    const txt=S.tokens.length? S.tokens.map(t=>({'×':'*','÷':'/','−':'-','÷(':'/(','^(':'^(','√(':'sqrt(','π':'pi','X':'x'}[t]||t)).join('')
+                             : String(parseFloat(S.ans.toPrecision(12)));
+    e.clipboardData.setData('text/plain',txt); e.preventDefault();
   });
 
   renderTape(); renderInput();
